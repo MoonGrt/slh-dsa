@@ -2,7 +2,6 @@
 #include <string.h>
 
 #include "utils.h"
-#include "utilsx1.h"
 #include "wots.h"
 #include "wotsx1.h"
 #include "merkle.h"

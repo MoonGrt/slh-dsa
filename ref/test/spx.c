@@ -2,9 +2,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "../api.h"
-#include "../params.h"
-#include "../randombytes.h"
+#include "api.h"
+#include "params.h"
+#include "randombytes.h"
 
 #define SPX_MLEN 32
 #define SPX_SIGNATURES 1

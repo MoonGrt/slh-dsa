@@ -2,7 +2,6 @@
 #include <string.h>
 
 #include "utils.h"
-#include "utilsx1.h"
 #include "hash.h"
 #include "thash.h"
 #include "wots.h"

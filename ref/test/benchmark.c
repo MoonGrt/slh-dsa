@@ -4,12 +4,12 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "../thash.h"
-#include "../api.h"
-#include "../fors.h"
-#include "../wotsx1.h"
-#include "../params.h"
-#include "../randombytes.h"
+#include "thash.h"
+#include "api.h"
+#include "fors.h"
+#include "wotsx1.h"
+#include "params.h"
+#include "randombytes.h"
 #include "cycles.h"
 
 #define SPX_MLEN 32

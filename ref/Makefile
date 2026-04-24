@@ -1,65 +1,56 @@
-PARAMS = sphincs-haraka-128f
-THASH = robust
+PARAMS ?= sphincs-haraka-128f
+THASH  ?= robust
+TEST   ?= haraka
 
-CC=/usr/bin/gcc
-CFLAGS=-Wall -Wextra -Wpedantic -O3 -std=c99 -Wconversion -Wmissing-prototypes -DPARAMS=$(PARAMS) $(EXTRA_CFLAGS)
+CC        = gcc
+SLH_DIR   = slh
+HASH_DIR  = hash
+TEST_DIR  = test
+PARAM_DIR = params
+BUILD_DIR = build
+CFLAGS    = -Wall -Wextra -Wpedantic -O3 -std=c99 -Wconversion -Wmissing-prototypes \
+            -DPARAMS=$(PARAMS) -I$(SLH_DIR) -I$(PARAM_DIR) -I$(HASH_DIR) -I$(TEST_DIR)
 
-SOURCES =          address.c randombytes.c merkle.c wots.c wotsx1.c utils.c utilsx1.c fors.c sign.c
-HEADERS = params.h address.h randombytes.h merkle.h wots.h wotsx1.h utils.h utilsx1.h fors.h api.h  hash.h thash.h
+SOURCES = slh/address.c slh/randombytes.c slh/merkle.c slh/wots.c slh/wotsx1.c slh/utils.c slh/fors.c slh/sign.c test/cycles.c
+HEADERS = slh/params.h slh/address.h slh/randombytes.h slh/merkle.h slh/wots.h slh/wotsx1.h slh/utils.h slh/fors.h slh/api.h
 
+HEADERS += hash/hash.h hash/thash.h
 ifneq (,$(findstring shake,$(PARAMS)))
-	SOURCES += fips202.c hash_shake.c thash_shake_$(THASH).c
-	HEADERS += fips202.h
+	SOURCES += hash/fips202.c hash/hash_shake.c hash/thash_shake_$(THASH).c
+	HEADERS += hash/fips202.h hash/shake_offsets.h
 endif
 ifneq (,$(findstring haraka,$(PARAMS)))
-	SOURCES += haraka.c hash_haraka.c thash_haraka_$(THASH).c
-	HEADERS += haraka.h
+	SOURCES += hash/haraka.c hash/hash_haraka.c hash/thash_haraka_$(THASH).c
+	HEADERS += hash/haraka.h hash/haraka_offsets.h
 endif
 ifneq (,$(findstring sha2,$(PARAMS)))
-	SOURCES += sha2.c hash_sha2.c thash_sha2_$(THASH).c
-	HEADERS += sha2.h
+	SOURCES += hash/sha2.c hash/hash_sha2.c hash/thash_sha2_$(THASH).c
+	HEADERS += hash/sha2.h hash/sha2_offsets.h
 endif
 
-DET_SOURCES = $(SOURCES:randombytes.%=rng.%)
-DET_HEADERS = $(HEADERS:randombytes.%=rng.%)
+DET_SOURCES = $(SOURCES:slh/randombytes.%=slh/rng.%)
+DET_HEADERS = $(HEADERS:slh/randombytes.%=slh/rng.%)
 
-TESTS =         test/fors \
-		test/spx \
+TEST_SRC = $(TEST_DIR)/$(TEST).c
+TEST_BIN = $(BUILD_DIR)/$(TEST)
 
-BENCHMARK = test/benchmark
+default: run
 
-.PHONY: clean test benchmark
+all: $(TEST_BIN)
+.PHONY: all
 
-default: PQCgenKAT_sign
+run: $(TEST_BIN)
+	@$(TEST_BIN)
+.PHONY: all
 
-all: PQCgenKAT_sign tests benchmarks
+# ===== 编译规则 =====
 
-tests: $(TESTS)
-
-test: $(TESTS:=.exec)
-
-benchmarks: $(BENCHMARK)
-
-benchmark: $(BENCHMARK:=.exec)
-
-PQCgenKAT_sign: PQCgenKAT_sign.c $(DET_SOURCES) $(DET_HEADERS)
+$(TEST_BIN): $(TEST_SRC) $(DET_SOURCES) $(DET_HEADERS)
+	mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -o $@ $(DET_SOURCES) $< -lcrypto
 
-test/benchmark: test/benchmark.c test/cycles.c $(SOURCES) $(HEADERS)
-	$(CC) $(CFLAGS) -o $@ test/cycles.c $(SOURCES) $< $(LDLIBS)
-
-test/%: test/%.c $(SOURCES) $(HEADERS)
-	$(CC) $(CFLAGS) -o $@ $(SOURCES) $< $(LDLIBS)
-
-test/haraka: test/haraka.c $(filter-out haraka.c,$(SOURCES)) $(HEADERS)
-	$(CC) $(CFLAGS) -o $@ $(filter-out haraka.c,$(SOURCES)) $< $(LDLIBS)
-
-test/%.exec: test/%
-	@$<
+# ===== 清理 =====
 
 clean:
-	-$(RM) $(TESTS)
-	-$(RM) $(BENCHMARK)
-	-$(RM) PQCgenKAT_sign
-	-$(RM) PQCsignKAT_*.rsp
-	-$(RM) PQCsignKAT_*.req
+	-$(RM) -r $(BUILD_DIR)
+	-$(RM) *.rsp *.req

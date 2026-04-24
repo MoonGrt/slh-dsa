@@ -75,6 +75,6 @@
 #define SPX_PK_BYTES (2 * SPX_N)
 #define SPX_SK_BYTES (2 * SPX_N + SPX_PK_BYTES)
 
-#include "../shake_offsets.h"
+#include "shake_offsets.h"
 
 #endif

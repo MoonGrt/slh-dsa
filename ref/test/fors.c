@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../context.h"
-#include "../hash.h"
-#include "../fors.h"
-#include "../randombytes.h"
-#include "../params.h"
+#include "context.h"
+#include "hash.h"
+#include "fors.h"
+#include "randombytes.h"
+#include "params.h"
 
 int main(void)
 {
