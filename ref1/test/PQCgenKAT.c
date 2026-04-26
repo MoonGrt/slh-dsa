@@ -12,6 +12,14 @@
 #include "rng.h"
 #include "api.h"
 
+#ifdef ENABLE_TRACE
+#include "trace.h"
+FILE *trace_fp = NULL;
+#define TRACE_NMU 1
+#else
+#define TRACE_NMU 5
+#endif
+
 #define	MAX_MARKER_LEN		50
 
 #define KAT_SUCCESS          0
@@ -40,6 +48,8 @@ main(void)
     unsigned char       pk[CRYPTO_PUBLICKEYBYTES], sk[CRYPTO_SECRETKEYBYTES];
     int                 ret_val;
 
+    trace_init("trace.json");
+
     // Create the REQUEST file
     sprintf(fn_req, "PQCsignKAT_%d.req", CRYPTO_SECRETKEYBYTES);
     if ( (fp_req = fopen(fn_req, "w")) == NULL ) {
@@ -56,7 +66,7 @@ main(void)
         entropy_input[i] = (unsigned char)i;
 
     randombytes_init(entropy_input, NULL);
-    for (int i=0; i<5; i++) {
+    for (int i=0; i<TRACE_NMU; i++) {
         fprintf(fp_req, "count = %d\n", i);
         randombytes(seed, 48);
         fprintBstr(fp_req, "seed = ", seed, 48);
@@ -122,6 +132,7 @@ main(void)
         fprintBstr(fp_rsp, "pk = ", pk, CRYPTO_PUBLICKEYBYTES);
         fprintBstr(fp_rsp, "sk = ", sk, CRYPTO_SECRETKEYBYTES);
 
+        // Sign the message
         if ( (ret_val = crypto_sign(sm, &smlen, m, mlen, sk)) != 0) {
             printf("crypto_sign returned <%d>\n", ret_val);
             return KAT_CRYPTO_FAILURE;
@@ -130,6 +141,7 @@ main(void)
         fprintBstr(fp_rsp, "sm = ", sm, smlen);
         fprintf(fp_rsp, "\n");
 
+        // Verify the signature
         if ( (ret_val = crypto_sign_open(m1, &mlen1, sm, smlen, pk)) != 0) {
             printf("crypto_sign_open returned <%d>\n", ret_val);
             return KAT_CRYPTO_FAILURE;

@@ -8,6 +8,10 @@
 #include "address.h"
 #include "params.h"
 
+#ifdef ENABLE_TRACE
+#include "trace.h"
+#endif
+
 /*
  * This generates a Merkle signature (WOTS signature followed by the Merkle
  * authentication path).  This is in this file because most of the complexity
@@ -23,22 +27,47 @@ void merkle_sign(uint8_t *sig, unsigned char *root,
     struct leaf_info_x1 info = { 0 };
     unsigned steps[ SPX_WOTS_LEN ];
 
+    trace_write("MERKLE_SIGN_START",
+                "\"leaf\":%u", idx_leaf);
+
+    /* WOTS signature part */
     info.wots_sig = sig;
+
     chain_lengths(steps, root);
+
+    trace_write("WOTS_CHAIN_LENGTHS",
+                "\"len\":%u", SPX_WOTS_LEN);
+
     info.wots_steps = steps;
 
     set_type(&tree_addr[0], SPX_ADDR_TYPE_HASHTREE);
+
     set_type(&info.pk_addr[0], SPX_ADDR_TYPE_WOTSPK);
+
     copy_subtree_addr(&info.leaf_addr[0], wots_addr);
     copy_subtree_addr(&info.pk_addr[0], wots_addr);
 
     info.wots_sign_leaf = idx_leaf;
 
+    trace_write("TREEHASH_START",
+                "\"leaf\":%u,\"height\":%u",
+                idx_leaf, SPX_TREE_HEIGHT);
+
     treehashx1(root, auth_path, ctx,
-                idx_leaf, 0,
-                SPX_TREE_HEIGHT,
-                wots_gen_leafx1,
-                tree_addr, &info);
+               idx_leaf, 0,
+               SPX_TREE_HEIGHT,
+               wots_gen_leafx1,
+               tree_addr, &info);
+
+    trace_write("AUTH_PATH_DONE",
+                "\"leaf\":%u", idx_leaf);
+
+    trace_write("ROOT_UPDATED",
+                "\"root\":\"%p\"",
+                (void*)root);
+
+    trace_write("MERKLE_SIGN_END",
+                "\"leaf\":%u", idx_leaf);
 }
 
 /* Compute root node of the top-most subtree. */

@@ -13,6 +13,10 @@
 #include "utils.h"
 #include "merkle.h"
 
+#ifdef ENABLE_TRACE
+#include "trace.h"
+#endif
+
 /*
  * Returns the length of a secret key, in bytes
  */
@@ -89,13 +93,12 @@ int crypto_sign_keypair(unsigned char *pk, unsigned char *sk)
   return 0;
 }
 
-/**
- * Returns an array containing a detached signature.
- */
 int crypto_sign_signature(uint8_t *sig, size_t *siglen,
                           const uint8_t *m, size_t mlen, const uint8_t *sk)
 {
     spx_ctx ctx;
+
+    trace_write("SIGN_START", "\"mlen\":%zu", mlen);
 
     const unsigned char *sk_prf = sk + SPX_N;
     const unsigned char *pk = sk + 2*SPX_N;
@@ -112,32 +115,49 @@ int crypto_sign_signature(uint8_t *sig, size_t *siglen,
     memcpy(ctx.sk_seed, sk, SPX_N);
     memcpy(ctx.pub_seed, pk, SPX_N);
 
-    /* This hook allows the hash function instantiation to do whatever
-       preparation or computation it needs, based on the public seed. */
+    trace_write("CTX_INIT", "\"done\":1");
+
     initialize_hash_function(&ctx);
 
     set_type(wots_addr, SPX_ADDR_TYPE_WOTS);
     set_type(tree_addr, SPX_ADDR_TYPE_HASHTREE);
 
-    /* Optionally, signing can be made non-deterministic using optrand.
-       This can help counter side-channel attacks that would benefit from
-       getting a large number of traces when the signer uses the same nodes. */
     randombytes(optrand, SPX_N);
-    /* Compute the digest randomization value. */
+
+    trace_write("OPTRAND_GEN", "\"len\":%d", SPX_N);
+
     gen_message_random(sig, sk_prf, optrand, m, mlen, &ctx);
 
-    /* Derive the message digest and leaf index from R, PK and M. */
+    trace_write("RANDOM_SIG_DONE", "\"r_ptr\":%p", (void*)sig);
+
     hash_message(mhash, &tree, &idx_leaf, sig, pk, m, mlen, &ctx);
+
+    trace_write("HASH_MESSAGE",
+                "\"tree\":%llu,\"idx_leaf\":%u",
+                (unsigned long long)tree,
+                idx_leaf);
+
     sig += SPX_N;
 
     set_tree_addr(wots_addr, tree);
     set_keypair_addr(wots_addr, idx_leaf);
 
-    /* Sign the message hash using FORS. */
+    trace_write("FORS_CALL", "\"start\":1");
+
     fors_sign(sig, root, mhash, &ctx, wots_addr);
+
+    trace_write("FORS_DONE", "\"root_ready\":1");
+
     sig += SPX_FORS_BYTES;
 
     for (i = 0; i < SPX_D; i++) {
+
+        trace_write("HYPERTREE_LAYER_START",
+                    "\"layer\":%u,\"tree\":%llu,\"idx\":%u",
+                    i,
+                    (unsigned long long)tree,
+                    idx_leaf);
+
         set_layer_addr(tree_addr, i);
         set_tree_addr(tree_addr, tree);
 
@@ -145,14 +165,26 @@ int crypto_sign_signature(uint8_t *sig, size_t *siglen,
         set_keypair_addr(wots_addr, idx_leaf);
 
         merkle_sign(sig, root, &ctx, wots_addr, tree_addr, idx_leaf);
+
+        trace_write("MERKLE_CALL_DONE",
+                    "\"layer\":%u", i);
+
         sig += SPX_WOTS_BYTES + SPX_TREE_HEIGHT * SPX_N;
 
-        /* Update the indices for the next layer. */
+        /* Update indices */
+        uint32_t old_idx = idx_leaf;
         idx_leaf = (tree & ((1 << SPX_TREE_HEIGHT)-1));
         tree = tree >> SPX_TREE_HEIGHT;
+
+        trace_write("IDX_UPDATE",
+                    "\"layer\":%u,\"old\":%u,\"new\":%u,\"tree\":%llu",
+                    i, old_idx, idx_leaf,
+                    (unsigned long long)tree);
     }
 
     *siglen = SPX_BYTES;
+
+    trace_write("SIGN_END", "\"siglen\":%zu", *siglen);
 
     return 0;
 }
@@ -247,6 +279,8 @@ int crypto_sign(unsigned char *sm, unsigned long long *smlen,
                 const unsigned char *m, unsigned long long mlen,
                 const unsigned char *sk)
 {
+    trace_write("SIGN_START", "\"msg_len\":%lld", mlen);
+
     size_t siglen;
 
     crypto_sign_signature(sm, &siglen, m, (size_t)mlen, sk);
@@ -264,6 +298,8 @@ int crypto_sign_open(unsigned char *m, unsigned long long *mlen,
                      const unsigned char *sm, unsigned long long smlen,
                      const unsigned char *pk)
 {
+    trace_write("VERIFY_START", "\"smsg_len\":%lld", smlen);
+
     /* The API caller does not necessarily know what size a signature should be
        but SPHINCS+ signatures are always exactly SPX_BYTES. */
     if (smlen < SPX_BYTES) {

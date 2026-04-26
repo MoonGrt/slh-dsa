@@ -1,6 +1,7 @@
 PARAMS ?= sphincs-haraka-128f
 THASH  ?= robust
-TEST   ?= haraka
+TEST   ?= PQCgenKAT
+TRACE  ?= 1
 
 CC        = gcc
 SLH_DIR   = slh
@@ -14,18 +15,24 @@ CFLAGS    = -Wall -Wextra -Wpedantic -O3 -std=c99 -Wconversion -Wmissing-prototy
 SOURCES = slh/address.c slh/randombytes.c slh/merkle.c slh/wots.c slh/wotsx1.c slh/utils.c slh/fors.c slh/sign.c test/cycles.c
 HEADERS = slh/params.h slh/address.h slh/randombytes.h slh/merkle.h slh/wots.h slh/wotsx1.h slh/utils.h slh/fors.h slh/api.h
 
+ifeq ($(TRACE),1)
+    CFLAGS  += -DENABLE_TRACE
+    SOURCES += slh/trace.c
+    HEADERS += slh/trace.h
+endif
+
 HEADERS += hash/hash.h hash/thash.h
 ifneq (,$(findstring shake,$(PARAMS)))
-	SOURCES += hash/fips202.c hash/hash_shake.c hash/thash_shake_$(THASH).c
-	HEADERS += hash/fips202.h hash/shake_offsets.h
+    SOURCES += hash/fips202.c hash/hash_shake.c hash/thash_shake_$(THASH).c
+    HEADERS += hash/fips202.h hash/shake_offsets.h
 endif
 ifneq (,$(findstring haraka,$(PARAMS)))
-	SOURCES += hash/haraka.c hash/hash_haraka.c hash/thash_haraka_$(THASH).c
-	HEADERS += hash/haraka.h hash/haraka_offsets.h
+    SOURCES += hash/haraka.c hash/hash_haraka.c hash/thash_haraka_$(THASH).c
+    HEADERS += hash/haraka.h hash/haraka_offsets.h
 endif
 ifneq (,$(findstring sha2,$(PARAMS)))
-	SOURCES += hash/sha2.c hash/hash_sha2.c hash/thash_sha2_$(THASH).c
-	HEADERS += hash/sha2.h hash/sha2_offsets.h
+    SOURCES += hash/sha2.c hash/hash_sha2.c hash/thash_sha2_$(THASH).c
+    HEADERS += hash/sha2.h hash/sha2_offsets.h
 endif
 
 DET_SOURCES = $(SOURCES:slh/randombytes.%=slh/rng.%)
@@ -43,14 +50,10 @@ run: $(TEST_BIN)
 	@$(TEST_BIN)
 .PHONY: all
 
-# ===== 编译规则 =====
-
 $(TEST_BIN): $(TEST_SRC) $(DET_SOURCES) $(DET_HEADERS)
 	mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -o $@ $(DET_SOURCES) $< -lcrypto
 
-# ===== 清理 =====
-
 clean:
 	-$(RM) -r $(BUILD_DIR)
-	-$(RM) *.rsp *.req
+	-$(RM) *.rsp *.req *.json

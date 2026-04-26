@@ -8,6 +8,10 @@
 #include "thash.h"
 #include "address.h"
 
+#ifdef ENABLE_TRACE
+#include "trace.h"
+#endif
+
 static void fors_gen_sk(unsigned char *sk, const spx_ctx *ctx,
                         uint32_t fors_leaf_addr[8])
 {
@@ -79,6 +83,8 @@ void fors_sign(unsigned char *sig, unsigned char *pk,
     uint32_t idx_offset;
     unsigned int i;
 
+    trace_write("FORS_START", "\"trees\":%d", SPX_FORS_TREES);
+
     copy_keypair_addr(fors_tree_addr, fors_addr);
     copy_keypair_addr(fors_leaf_addr, fors_addr);
 
@@ -87,28 +93,53 @@ void fors_sign(unsigned char *sig, unsigned char *pk,
 
     message_to_indices(indices, m);
 
+    trace_write("FORS_INDICES",
+                "\"i0\":%u,\"i1\":%u,\"i2\":%u",
+                indices[0], indices[1], indices[2]);
+
     for (i = 0; i < SPX_FORS_TREES; i++) {
+
         idx_offset = i * (1 << SPX_FORS_HEIGHT);
+
+        trace_write("TREE_START",
+                    "\"tree\":%u,\"idx\":%u,\"offset\":%u",
+                    i, indices[i], idx_offset);
 
         set_tree_height(fors_tree_addr, 0);
         set_tree_index(fors_tree_addr, indices[i] + idx_offset);
         set_type(fors_tree_addr, SPX_ADDR_TYPE_FORSPRF);
 
-        /* Include the secret key part that produces the selected leaf node. */
+        /* secret key leaf */
         fors_gen_sk(sig, ctx, fors_tree_addr);
+
+        trace_write("FORS_LEAF",
+                    "\"tree\":%u,\"sig_ptr_offset\":%ld",
+                    i, (long)(sig - (unsigned char*)0));
+
         set_type(fors_tree_addr, SPX_ADDR_TYPE_FORSTREE);
         sig += SPX_N;
 
-        /* Compute the authentication path for this leaf node. */
+        /* auth path */
         treehashx1(roots + i*SPX_N, sig, ctx,
-                 indices[i], idx_offset, SPX_FORS_HEIGHT, fors_gen_leafx1,
-                 fors_tree_addr, &fors_info);
+                   indices[i], idx_offset, SPX_FORS_HEIGHT,
+                   fors_gen_leafx1,
+                   fors_tree_addr, &fors_info);
+
+        trace_write("AUTH_PATH_DONE",
+                    "\"tree\":%u", i);
 
         sig += SPX_N * SPX_FORS_HEIGHT;
+
+        trace_write("TREE_END",
+                    "\"tree\":%u", i);
     }
 
-    /* Hash horizontally across all tree roots to derive the public key. */
+    trace_write("FORS_ROOTS_READY", "\"count\":%d", SPX_FORS_TREES);
+
+    /* derive pk */
     thash(pk, roots, SPX_FORS_TREES, ctx, fors_pk_addr);
+
+    trace_write("FORS_END", "\"done\":1");
 }
 
 /**
