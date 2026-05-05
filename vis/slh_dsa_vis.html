@@ -1,0 +1,689 @@
+​<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SLH - DSA</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        h2 {
+            color: #444;
+            margin-top: 40px;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
+        }
+        .demo-container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: auto;
+        }
+        .controls {
+            margin: 15px 0;
+            text-align: center;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .merkle-tree {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .tree-level {
+            display: flex;
+            justify-content: center;
+            margin: 10px 0;
+        }
+        .tree-node {
+            width: 60px;
+            height: 30px;
+            background-color: #a5d6a7;
+            margin: 0 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 4px;
+            font-size: 10px;
+            position: relative;
+            transition: background-color 0.3s;
+        }
+        .tree-node.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .tree-node.highlight {
+            background-color: #ff9800;
+            color: white;
+        }
+        .tree-connector {
+            position: absolute;
+            background-color: #888;
+            width: 2px;
+        }
+        .winternitz-chain {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0;
+        }
+        .wots-step {
+            width: 40px;
+            height: 40px;
+            background-color: #90caf9;
+            margin: 0 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 4px;
+            position: relative;
+            transition: background-color 0.3s;
+        }
+        .wots-step.active {
+            background-color: #2196F3;
+            color: white;
+        }
+        .wots-arrow {
+            position: absolute;
+            right: -12px;
+            color: #666;
+        }
+        .xmss-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .xmss-tree {
+            margin-bottom: 20px;
+        }
+        .xmss-ots {
+            margin-top: 20px;
+        }
+        .explanation {
+            background-color: #e8f5e9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        canvas {
+            background-color: white;
+            border: 1px solid #ddd;
+            margin: 10px 0;
+        }
+        .signature-content {
+            margin-top: 5px;
+            padding: 8px;
+            background-color: #f1f8e9;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>SLH - DSA</h1>
+
+    <div class="demo-container">
+        <h2>Winternitz One-Time Signature Plus Scheme (WOTS+)</h2>
+        <svg class="winternitz-chain" id="wotsSVG" viewBox="0 0 600 120" width="100%" height="120">
+            <!-- 链结构将通过JavaScript动态生成 -->
+        </svg>
+        <div class="controls">
+            <button id="wotsReset">Reset</button>
+            <button id="wotsStep">Step</button>
+            <button id="wotsAuto">Auto</button>
+        </div>
+        <div class="explanation">
+            <p><strong>Winternitz One-Time Signature Plus Scheme (WOTS+)</strong> Process:</p>
+            <ol>
+                <li>生成随机私钥作为链的起点</li>
+                <li>通过多次迭代哈希函数生成哈希链</li>
+                <li>链的末端作为公钥</li>
+                <li>签名时根据消息选择释放链中的某个中间节点</li>
+                <li>验证时继续哈希签名直到匹配公钥</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="demo-container">
+        <h2>Merkle Tree</h2>
+        <svg class="merkle-tree" id="merkleSVG" viewBox="0 0 500 260" width="100%" height="260">
+            <!-- 树结构将通过JavaScript动态生成 -->
+        </svg>
+        <div class="controls">
+            <button id="merkleReset">Reset</button>
+            <button id="merkleStep">Step</button>
+            <button id="merkleAuto">Auto</button>
+        </div>
+        <div class="explanation">
+            <p><strong>Merkle Tree</strong> Process:</p>
+            <ol>
+                <li>将数据分成多个块，对每个块计算哈希值（叶节点）</li>
+                <li>将相邻的两个哈希值拼接后再次哈希，生成父节点</li>
+                <li>递归此过程直到生成唯一的根哈希</li>
+                <li>验证时只需提供从叶节点到根节点的路径哈希（称为Merkle路径）</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="demo-container">
+        <h2>eXtended Merkle Signature Scheme (XMSS)</h2>
+        <svg class="xmss-container" id="xmssSVG" viewBox="0 0 700 320" width="100%" height="320">
+            <!-- XMSS树结构将通过JavaScript动态生成 -->
+        </svg>
+        <div class="controls">
+            <button id="xmssReset">Reset</button>
+            <button id="xmssStep">Step</button>
+            <button id="xmssAuto">Auto</button>
+        </div>
+        <div class="explanation">
+            <p><strong>eXtended Merkle Signature Scheme (XMSS)</strong> Process:</p>
+            <ol>
+                <li>生成多个WOTS密钥对</li>
+                <li>使用Merkle树对这些公钥进行认证</li>
+                <li>签名时使用一个WOTS密钥对并包含Merkle认证路径</li>
+                <li>验证时验证WOTS签名并检查Merkle路径</li>
+                <li>每个密钥对只能使用一次</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // Winternitz OTS演示
+        const wotsSVG = document.getElementById('wotsSVG');
+        const wotsResetBtn = document.getElementById('wotsReset');
+        const wotsStepBtn = document.getElementById('wotsStep');
+        const wotsAutoBtn = document.getElementById('wotsAuto');
+
+        let wotsNodes = [];
+        let wotsEdges = [];
+        let wotsState = -1;
+        let wotsAuto = null;
+
+        const NODE_SPACING = 80;
+        const NODE_WIDTH = 60;
+        const chainData = ["SK", "H1", "H2", "H3", "H4", "H5", "H6", "PK"];
+
+        function createRectNode(svg, x, y, text) {
+            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            rect.setAttribute("x", x - NODE_WIDTH / 2);
+            rect.setAttribute("y", y - 15);
+            rect.setAttribute("width", NODE_WIDTH);
+            rect.setAttribute("height", 30);
+            rect.setAttribute("rx", 6);
+            rect.setAttribute("fill", "#90caf9");
+            const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            label.setAttribute("x", x);
+            label.setAttribute("y", y + 4);
+            label.setAttribute("text-anchor", "middle");
+            label.setAttribute("font-size", "12");
+            label.textContent = text;
+            g.appendChild(rect);
+            g.appendChild(label);
+            svg.appendChild(g);
+            return { rect };
+        }
+
+        function createArrow(svg, x1, y1, x2, y2) {
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", x1);
+            line.setAttribute("y1", y1);
+            line.setAttribute("x2", x2);
+            line.setAttribute("y2", y2);
+            line.setAttribute("stroke", "#666");
+            line.setAttribute("stroke-width", "2");
+            svg.appendChild(line);
+            return line;
+        }
+
+        function initWOTSSVG() {
+            wotsSVG.innerHTML = '';
+            wotsNodes = [];
+            wotsEdges = [];
+            wotsState = -1;
+            const width = 600;
+            const y = 60;
+            // 居中计算（关键）
+            const totalWidth = (chainData.length - 1) * NODE_SPACING;
+            const startX = (width - totalWidth) / 2;
+            // 创建节点
+            chainData.forEach((text, i) => {
+                const x = startX + i * NODE_SPACING;
+                const node = createRectNode(wotsSVG, x, y, text);
+                wotsNodes.push({ ...node, x, y });
+            });
+            // 创建箭头（真实线）
+            for (let i = 0; i < wotsNodes.length - 1; i++) {
+                const a = wotsNodes[i];
+                const b = wotsNodes[i + 1];
+                wotsEdges.push(
+                    createArrow(
+                        wotsSVG,
+                        a.x + NODE_WIDTH / 2,
+                        a.y,
+                        b.x - NODE_WIDTH / 2,
+                        b.y
+                    )
+                );
+            }
+        }
+
+        function resetWOTSHighlight() {
+            wotsNodes.forEach(n => n.rect.setAttribute("fill", "#90caf9"));
+            wotsEdges.forEach(e => e.setAttribute("stroke", "#666"));
+        }
+        function highlightWOTSNode(i, type) {
+            wotsNodes[i].rect.setAttribute(
+                "fill", type === "active" ? "#2196F3" : "#ff9800"
+            );
+        }
+        function highlightWOTSEdge(i) {
+            wotsEdges[i].setAttribute("stroke", "#ff9800");
+        }
+        function wotsNextStep() {
+            if (wotsState >= chainData.length - 1) return;
+            wotsState++;
+            resetWOTSHighlight();
+            if (wotsState === 0) {
+                highlightWOTSNode(0, "highlight");
+                return;
+            }
+            // highlightWOTSNode(wotsState - 1, "active");
+            highlightWOTSNode(wotsState, "highlight");
+            highlightWOTSEdge(wotsState - 1);
+        }
+
+        wotsResetBtn.onclick = () => {
+            clearInterval(wotsAuto);
+            wotsAuto = null;
+            initWOTSSVG();
+        };
+        wotsStepBtn.onclick = () => {
+            clearInterval(wotsAuto);
+            wotsAuto = null;
+            wotsNextStep();
+        };
+        wotsAutoBtn.onclick = () => {
+            if (wotsAuto) {
+                clearInterval(wotsAuto);
+                wotsAuto = null;
+                return;
+            }
+            initWOTSSVG();
+            wotsAuto = setInterval(() => {
+                if (wotsState >= chainData.length - 1) {
+                    clearInterval(wotsAuto);
+                    wotsAuto = null;
+                    return;
+                }
+                wotsNextStep();
+            }, 400);
+        };
+
+
+        // Merkle树演示
+        let merkleNodes = [];
+        let merkleActiveIndex = -1;
+        let merkleAutoInterval = null;
+
+        const merklesvg = document.getElementById('merkleSVG');
+        const merkleResetBtn = document.getElementById('merkleReset');
+        const merkleStepBtn = document.getElementById('merkleStep');
+        const merkleAutoBtn = document.getElementById('merkleAuto');
+
+        let merkleState = -1;
+        let merkleAuto = null;
+
+        // 数据结构（关键改进点）
+        const treeData = [
+            ["D1", "D2", "D3", "D4"],
+            ["H12", "H34"],
+            ["Root"]
+        ];
+
+        let nodes = [];
+        let edges = [];
+
+        function createNode(x, y, text) {
+            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            rect.setAttribute("x", x - 30);
+            rect.setAttribute("y", y - 15);
+            rect.setAttribute("width", 60);
+            rect.setAttribute("height", 30);
+            rect.setAttribute("rx", 6);
+            rect.setAttribute("fill", "#a5d6a7");
+            const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            label.setAttribute("x", x);
+            label.setAttribute("y", y + 4);
+            label.setAttribute("text-anchor", "middle");
+            label.setAttribute("font-size", "12");
+            label.textContent = text;
+            g.appendChild(rect);
+            g.appendChild(label);
+            merklesvg.appendChild(g);
+            return { group: g, rect };
+        }
+
+        function createEdge(x1, y1, x2, y2) {
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", x1);
+            line.setAttribute("y1", y1);
+            line.setAttribute("x2", x2);
+            line.setAttribute("y2", y2);
+            line.setAttribute("stroke", "#888");
+            line.setAttribute("stroke-width", "2");
+            merklesvg.appendChild(line);
+            return line;
+        }
+
+        function initMerkleSVG() {
+            merklesvg.innerHTML = '';
+            nodes = [];
+            edges = [];
+            merkleState = -1;
+            const width = 500;
+            const levelHeight = 80;
+            treeData.forEach((level, i) => {
+                const y = 40 + i * levelHeight;
+                const gap = width / (level.length + 1);
+                nodes[i] = [];
+                level.forEach((text, j) => {
+                    const x = gap * (j + 1);
+                    const node = createNode(x, y, text);
+                    nodes[i].push({ ...node, x, y });
+                });
+            });
+            for (let i = 0; i < nodes.length - 1; i++) {
+                for (let j = 0; j < nodes[i].length; j += 2) {
+                    const parent = nodes[i + 1][Math.floor(j / 2)];
+                    const left = nodes[i][j];
+                    const right = nodes[i][j + 1];
+                    edges.push(createEdge(left.x, left.y + 15, parent.x, parent.y - 15));
+                    edges.push(createEdge(right.x, right.y + 15, parent.x, parent.y - 15));
+                }
+            }
+        }
+        function highlightNode(node, type) {
+            node.rect.setAttribute("fill",
+                type === "active" ? "#4CAF50" :
+                type === "highlight" ? "#ff9800" :
+                "#a5d6a7"
+            );
+        }
+        function resetHighlight() {
+            nodes.flat().forEach(n => highlightNode(n, null));
+        }
+        function merkleNextStep() {
+            if (merkleState >= 6) return;
+            merkleState++;
+            resetHighlight();
+            switch (merkleState) {
+                case 0:
+                    highlightNode(nodes[0][0], "highlight");
+                    break;
+                case 1:
+                    highlightNode(nodes[0][1], "highlight");
+                    break;
+                case 2:
+                    highlightNode(nodes[0][0], "active");
+                    highlightNode(nodes[0][1], "active");
+                    highlightNode(nodes[1][0], "highlight");
+                    break;
+                case 3:
+                    highlightNode(nodes[0][2], "highlight");
+                    break;
+                case 4:
+                    highlightNode(nodes[0][3], "highlight");
+                    break;
+                case 5:
+                    highlightNode(nodes[0][2], "active");
+                    highlightNode(nodes[0][3], "active");
+                    highlightNode(nodes[1][1], "highlight");
+                    break;
+                case 6:
+                    highlightNode(nodes[1][0], "active");
+                    highlightNode(nodes[1][1], "active");
+                    highlightNode(nodes[2][0], "highlight");
+                    break;
+            }
+        }
+
+        // 控制按钮
+        merkleResetBtn.onclick = () => {
+            clearInterval(merkleAuto);
+            merkleAuto = null;
+            initMerkleSVG();
+        };
+
+        merkleStepBtn.onclick = () => {
+            clearInterval(merkleAuto);
+            merkleAuto = null;
+            merkleNextStep();
+        };
+
+        merkleAutoBtn.onclick = () => {
+            if (merkleAuto) {
+                clearInterval(merkleAuto);
+                merkleAuto = null;
+                return;
+            }
+
+            initMerkleSVG();
+            merkleAuto = setInterval(() => {
+                if (merkleState >= 6) {
+                    clearInterval(merkleAuto);
+                    merkleAuto = null;
+                    return;
+                }
+                merkleNextStep();
+            }, 1000);
+        };
+
+
+        // XMSS演示 - 改进后的版本
+        const xmssSVG = document.getElementById('xmssSVG');
+        const xmssResetBtn = document.getElementById('xmssReset');
+        const xmssStepBtn = document.getElementById('xmssStep');
+        const xmssAutoBtn = document.getElementById('xmssAuto');
+
+        let xmssState = -1;
+        let xmssAuto = null;
+        let xmssNodes = [];
+        let xmssEdges = [];
+        let xmsswotsNodes = [];
+
+        function xmssCreateRectNode(x, y, text, w = 80, h = 30) {
+            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            rect.setAttribute("x", x - w/2);
+            rect.setAttribute("y", y - h/2);
+            rect.setAttribute("width", w);
+            rect.setAttribute("height", h);
+            rect.setAttribute("rx", 6);
+            rect.setAttribute("fill", "#a5d6a7");
+
+            const textEl = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            textEl.setAttribute("x", x);
+            textEl.setAttribute("y", y + 4);
+            textEl.setAttribute("text-anchor", "middle");
+            textEl.setAttribute("font-size", "12");
+            textEl.textContent = text;
+
+            g.appendChild(rect);
+            g.appendChild(textEl);
+            xmssSVG.appendChild(g);
+
+            return { rect, x, y };
+        }
+
+        function xmssCreateLine(x1, y1, x2, y2) {
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", x1);
+            line.setAttribute("y1", y1);
+            line.setAttribute("x2", x2);
+            line.setAttribute("y2", y2);
+            line.setAttribute("stroke", "#888");
+            line.setAttribute("stroke-width", "2");
+
+            xmssSVG.appendChild(line);
+            return line;
+        }
+
+        // ---------- 初始化 ----------
+        function initXMSSSVG() {
+            xmssSVG.innerHTML = '';
+            xmssNodes = [];
+            xmssEdges = [];
+            xmsswotsNodes = [];
+            xmssState = -1;
+
+            const width = 700;
+            const treeY = [40, 110, 180];
+            const treeData = [
+                ["Root"],
+                ["H0", "H1"],
+                ["PK0", "PK1"]
+            ];
+            treeData.forEach((level, i) => {
+                const totalWidth = (level.length - 1) * 150;
+                const startX = (width - totalWidth) / 2;
+                xmssNodes[i] = [];
+                level.forEach((txt, j) => {
+                    const x = startX + j * 150;
+                    const node = xmssCreateRectNode(x, treeY[i], txt);
+                    xmssNodes[i].push(node);
+                });
+            });
+            for (let i = 0; i < xmssNodes.length - 1; i++) {
+                for (let j = 0; j < xmssNodes[i+1].length; j++) {
+                    const child = xmssNodes[i+1][j];
+                    const parent = xmssNodes[i][Math.floor(j/2)];
+                    xmssEdges.push(xmssCreateLine(child.x, child.y+15, parent.x, parent.y-15));
+                }
+            }
+
+            // ===== WOTS Chain =====
+            const chainY = 260;
+            const chainLen = 5;
+
+            const totalWidth = (chainLen - 1) * 100;
+            const startX = (width - totalWidth) / 2;
+
+            for (let i = 0; i < chainLen; i++) {
+                const x = startX + i * 100;
+                const txt = i === 0 ? "SK" : (i === chainLen-1 ? "PK" : `H${i}`);
+                const node = xmssCreateRectNode(x, chainY, txt, 70, 30);
+                xmsswotsNodes.push(node);
+                if (i > 0) {
+                    xmssCreateLine(xmsswotsNodes[i-1].x + 35, chainY, x - 35, chainY);
+                }
+            }
+            xmssCreateLine(xmsswotsNodes[chainLen-1].x, chainY - 15, xmssNodes[2][0].x, xmssNodes[2][0].y + 15);
+        }
+
+        function highlight(node, type) {
+            node.rect.setAttribute("fill",
+                type === "active" ? "#4CAF50" :
+                type === "highlight" ? "#ff9800" :
+                "#a5d6a7"
+            );
+        }
+        function resetAll() {
+            [...xmssNodes.flat(), ...xmsswotsNodes].forEach(n => highlight(n, null));
+        }
+        function xmssNextStep() {
+            if (xmssState >= 7) return;
+            xmssState++;
+            resetAll();
+            switch (xmssState) {
+                case 0:
+                    highlight(xmsswotsNodes[0], "highlight");
+                    break;
+                case 1:
+                    highlight(xmsswotsNodes[0], "active");
+                    highlight(xmsswotsNodes[1], "highlight");
+                    break;
+                case 2:
+                    highlight(xmsswotsNodes[2], "highlight");
+                    break;
+                case 3:
+                    highlight(xmsswotsNodes[4], "highlight");
+                    break;
+                case 4:
+                    highlight(xmssNodes[2][0], "highlight");
+                    break;
+                case 5:
+                    highlight(xmssNodes[1][0], "highlight");
+                    break;
+                case 6:
+                    highlight(xmssNodes[0][0], "highlight");
+                    break;
+                case 7:
+                    highlight(xmssNodes[0][0], "active");
+                    break;
+            }
+        }
+
+        xmssResetBtn.onclick = () => {
+            clearInterval(xmssAuto);
+            xmssAuto = null;
+            initXMSSSVG();
+        };
+        xmssStepBtn.onclick = () => {
+            clearInterval(xmssAuto);
+            xmssAuto = null;
+            xmssNextStep();
+        };
+        xmssAutoBtn.onclick = () => {
+            if (xmssAuto) {
+                clearInterval(xmssAuto);
+                xmssAuto = null;
+                return;
+            }
+            initXMSSSVG();
+            xmssAuto = setInterval(() => {
+                if (xmssState >= 7) {
+                    clearInterval(xmssAuto);
+                    xmssAuto = null;
+                    return;
+                }
+                xmssNextStep();
+            }, 1000);
+        };
+
+
+        // 初始化所有演示
+        window.onload = function() {
+            initWOTSSVG();
+            initMerkleSVG();
+            initXMSSSVG();
+        };
+    </script>
+</body>
+</html>

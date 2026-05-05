@@ -1,3 +1,5 @@
+https://github.com/slh-dsa/sloth.git
+
 #   slh
 
 2023-12-21  Markku-Juhani O. Saarinen  mjos@iki.fi
