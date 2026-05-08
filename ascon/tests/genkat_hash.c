@@ -55,7 +55,7 @@
 
 #define MAX_FILE_NAME 256
 #ifndef MAX_MESSAGE_LENGTH
-#define MAX_MESSAGE_LENGTH 1024
+#define MAX_MESSAGE_LENGTH 1
 #endif
 
 #if defined(ASCON_VARIANT) && ASCON_VARIANT == 3

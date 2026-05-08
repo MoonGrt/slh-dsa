@@ -7,10 +7,11 @@ SLH_DIR := slh
 HASH_DIR:= hash
 
 CSRC    := $(wildcard $(SLH_DIR)/*.c) $(wildcard $(HASH_DIR)/*.c)
+CSRC    += tests/kat_test.c
 TARGET  := $(BUILD)/$(XBIN)
 
 CC      := gcc
-CFLAGS  += -Wall -march=native -Ofast -DNDEBUG
+CFLAGS  += -Wall -march=native -Ofast -DNDEBUG -DOUTPUT_DIR=\"$(BUILD)\"
 CFLAGS  += -I. -I$(SLH_DIR) -I$(HASH_DIR) -DKATNUM=$(KATNUM)
 
 LDLIBS  +=
@@ -25,9 +26,9 @@ $(TARGET): $(CSRC) | $(BUILD)
 
 test: $(TARGET)
 	$^
-	sha256sum *.rsp > $(BUILD)/t.log
+	sha256sum $(BUILD)/*.rsp > $(BUILD)/t.log
 	cat $(BUILD)/t.log ../kat/kat$(KATNUM)-sha256.txt | sort | uniq -c -w 64
 	@echo "NOTE >2<- indicates test vector comparison match, 1 is a failure."
 
 clean:
-	$(RM) -rf $(BUILD) *.rsp *.req
+	$(RM) -rf $(BUILD)

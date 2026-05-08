@@ -2,7 +2,7 @@ BUILD_DIR := build
 
 CC       := gcc
 CFLAGS   := -march=native -O3 -DOUTPUT_DIR=\"$(BUILD_DIR)\"
-# CFLAGS   += -DASCON_PRINT_STATE
+CFLAGS   += -DASCON_PRINT_STATE
 
 TEST_SRCS  := tests/genkat_hash.c
 INCLUDES   := -Itests

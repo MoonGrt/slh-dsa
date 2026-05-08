@@ -17,6 +17,10 @@
 #define KATNUM 100
 #endif
 
+#ifndef OUTPUT_DIR
+#define OUTPUT_DIR "."
+#endif
+
 //  fake test drbg state
 aes256_ctr_drbg_t kat_drbg, iut_drbg;
 
@@ -53,7 +57,7 @@ int kat_test(const slh_param_t *iut, int katnum)
     uint8_t sk[4 * 32] = { 0 };
     uint8_t sm[50000 + 33 * KATNUM];
 
-    snprintf(fn, sizeof(fn), "%s-%d.rsp", slh_alg_id(iut), katnum);
+    snprintf(fn, sizeof(fn), "%s/%s-%d.rsp", OUTPUT_DIR, slh_alg_id(iut), katnum);
     fh = fopen(fn, "w");
     if (fh == NULL) {
         perror(fn);
