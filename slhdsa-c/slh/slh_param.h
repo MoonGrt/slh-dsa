@@ -11,8 +11,7 @@
 #include "plat_local.h"
 
 /* address */
-typedef union
-{
+typedef union {
   uint8_t u8[32];
   uint32_t u32[8];
 } adrs_t;
@@ -27,8 +26,7 @@ typedef struct slh_var_s slh_var_t;
 /* used to indicate _internal mode */
 #define SLH_CTX_SZ_NO_CONTEXT 0x100
 
-struct slh_param_s
-{
+struct slh_param_s {
   const char *alg_id; /* Algorithm name */
 
   /* core parameters */

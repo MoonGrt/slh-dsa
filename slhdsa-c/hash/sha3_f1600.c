@@ -14,8 +14,7 @@ uint64_t keccak_f1600_count = 0; /* instrumentation */
 
 /* forward permutation */
 
-void keccak_f1600(uint64_t x[25])
-{
+void keccak_f1600(uint64_t x[25]) {
   /* round constants */
   static const uint64_t keccak_rc[24] = {
       UINT64_C(0x0000000000000001), UINT64_C(0x0000000000008082),
@@ -40,8 +39,7 @@ void keccak_f1600(uint64_t x[25])
 
   /* iteration */
 
-  for (i = 0; i < 24; i++)
-  {
+  for (i = 0; i < 24; i++) {
     /* Theta */
 
     y4 = x[4] ^ x[9] ^ x[14] ^ x[19] ^ x[24];

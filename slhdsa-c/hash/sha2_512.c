@@ -15,26 +15,23 @@ uint64_t sha2_512_compress_count = 0; /* instrumentation */
 
 /* processing step, sets "d" and "h" as a function of all 8 inputs */
 /* and message schedule "mi", round constant "ki" */
-#define STEP_SHA512_R(a, b, c, d, e, f, g, h, mi, ki)  \
-  {                                                    \
-    h += (g ^ (e & (f ^ g))) + mi + ki +               \
-         (ror64(e, 14) ^ ror64(e, 18) ^ ror64(e, 41)); \
-    d += h;                                            \
-    h += (((a | c) & b) | (c & a)) +                   \
-         (ror64(a, 28) ^ ror64(a, 34) ^ ror64(a, 39)); \
+#define STEP_SHA512_R(a, b, c, d, e, f, g, h, mi, ki) { \
+    h += (g ^ (e & (f ^ g))) + mi + ki +                \
+         (ror64(e, 14) ^ ror64(e, 18) ^ ror64(e, 41));  \
+    d += h;                                             \
+    h += (((a | c) & b) | (c & a)) +                    \
+         (ror64(a, 28) ^ ror64(a, 34) ^ ror64(a, 39));  \
   }
 
 /* keying step, sets x0 as a function of 4 inputs */
-#define STEP_SHA512_K(x0, x1, x9, xe)                      \
-  {                                                        \
+#define STEP_SHA512_K(x0, x1, x9, xe) {                    \
     x0 += x9 + (ror64(x1, 1) ^ ror64(x1, 8) ^ (x1 >> 7)) + \
           (ror64(xe, 19) ^ ror64(xe, 61) ^ (xe >> 6));     \
   }
 
 /* compression function (this one does *not* modify m[16]) */
 
-void sha2_512_compress(void *v)
-{
+void sha2_512_compress(void *v) {
   /* 4.2.3 SHA-384, SHA-512, SHA-512/224 and SHA-512/256 Constants */
 
   const uint64_t ck[80] = {
@@ -119,8 +116,7 @@ void sha2_512_compress(void *v)
   me = rev8_be64(mp[14]);
   mf = rev8_be64(mp[15]);
 
-  while (1)
-  {
+  while (1) {
     /* main rounds */
     STEP_SHA512_R(a, b, c, d, e, f, g, h, m0, kp[0]);
     STEP_SHA512_R(h, a, b, c, d, e, f, g, m1, kp[1]);
@@ -140,9 +136,7 @@ void sha2_512_compress(void *v)
     STEP_SHA512_R(b, c, d, e, f, g, h, a, mf, kp[15]);
 
     if (kp == &ck[80 - 16])
-    {
       break;
-    }
     kp += 16;
 
     STEP_SHA512_K(m0, m1, m9, me); /* key schedule */
@@ -175,15 +169,13 @@ void sha2_512_compress(void *v)
 
 /* initialize */
 
-static void sha2_512_init_h0(sha2_512_t *sha, const uint8_t *h0)
-{
+static void sha2_512_init_h0(sha2_512_t *sha, const uint8_t *h0) {
   memcpy(sha->s, h0, 64);
   sha->i = 0;
   sha->len = 0;
 }
 
-void sha2_512_init(sha2_512_t *sha)
-{
+void sha2_512_init(sha2_512_t *sha) {
   /* SHA-512 initial values H0, Sect 5.3.5. */
   const uint8_t sha2_512_h0[64] = {
       0x6A, 0x09, 0xE6, 0x67, 0xF3, 0xBC, 0xC9, 0x08, 0xBB, 0x67, 0xAE,
@@ -192,12 +184,10 @@ void sha2_512_init(sha2_512_t *sha)
       0x0E, 0x52, 0x7F, 0xAD, 0xE6, 0x82, 0xD1, 0x9B, 0x05, 0x68, 0x8C,
       0x2B, 0x3E, 0x6C, 0x1F, 0x1F, 0x83, 0xD9, 0xAB, 0xFB, 0x41, 0xBD,
       0x6B, 0x5B, 0xE0, 0xCD, 0x19, 0x13, 0x7E, 0x21, 0x79};
-
   sha2_512_init_h0(sha, sha2_512_h0);
 }
 
-void sha2_384_init(sha2_512_t *sha)
-{
+void sha2_384_init(sha2_512_t *sha) {
   /* SHA-384 initial values H0, Sect 5.3.4. */
   const uint8_t sha2_384_h0[64] = {
       0xCB, 0xBB, 0x9D, 0x5D, 0xC1, 0x05, 0x9E, 0xD8, 0x62, 0x9A, 0x29,
@@ -206,12 +196,10 @@ void sha2_384_init(sha2_512_t *sha)
       0x33, 0x26, 0x67, 0xFF, 0xC0, 0x0B, 0x31, 0x8E, 0xB4, 0x4A, 0x87,
       0x68, 0x58, 0x15, 0x11, 0xDB, 0x0C, 0x2E, 0x0D, 0x64, 0xF9, 0x8F,
       0xA7, 0x47, 0xB5, 0x48, 0x1D, 0xBE, 0xFA, 0x4F, 0xA4};
-
   sha2_512_init_h0(sha, sha2_384_h0);
 }
 
-void sha2_512_224_init(sha2_512_t *sha)
-{
+void sha2_512_224_init(sha2_512_t *sha) {
   /* SHA-512/224 initial values H0, Sect 5.3.6.1. */
   const uint8_t sha2_512_224_h0[64] = {
       0x8C, 0x3D, 0x37, 0xC8, 0x19, 0x54, 0x4D, 0xA2, 0x73, 0xE1, 0x99,
@@ -220,12 +208,10 @@ void sha2_512_224_init(sha2_512_t *sha)
       0x6D, 0x2B, 0x69, 0x7B, 0xD4, 0x4D, 0xA8, 0x77, 0xE3, 0x6F, 0x73,
       0x04, 0xC4, 0x89, 0x42, 0x3F, 0x9D, 0x85, 0xA8, 0x6A, 0x1D, 0x36,
       0xC8, 0x11, 0x12, 0xE6, 0xAD, 0x91, 0xD6, 0x92, 0xA1};
-
   sha2_512_init_h0(sha, sha2_512_224_h0);
 }
 
-void sha2_512_256_init(sha2_512_t *sha)
-{
+void sha2_512_256_init(sha2_512_t *sha) {
   /* SHA-512/256 initial values H0, Sect 5.3.6.2. */
   const uint8_t sha2_512_256_h0[64] = {
       0x22, 0x31, 0x21, 0x94, 0xFC, 0x2B, 0xF7, 0x2C, 0x9F, 0x55, 0x5F,
@@ -234,12 +220,10 @@ void sha2_512_256_init(sha2_512_t *sha)
       0x28, 0x3E, 0xE2, 0xA8, 0x8E, 0xFF, 0xE3, 0xBE, 0x5E, 0x1E, 0x25,
       0x53, 0x86, 0x39, 0x92, 0x2B, 0x01, 0x99, 0xFC, 0x2C, 0x85, 0xB8,
       0xAA, 0x0E, 0xB7, 0x2D, 0xDC, 0x81, 0xC5, 0x2C, 0xA2};
-
   sha2_512_init_h0(sha, sha2_512_256_h0);
 }
 
-void sha2_512_copy(sha2_512_t *dst, const sha2_512_t *src)
-{
+void sha2_512_copy(sha2_512_t *dst, const sha2_512_t *src) {
   dst->i = src->i;
   dst->len = src->len;
   memcpy(dst->s, src->s, 64 + src->i);
@@ -247,30 +231,26 @@ void sha2_512_copy(sha2_512_t *dst, const sha2_512_t *src)
 
 /* take message input */
 
-void sha2_512_update(sha2_512_t *sha, const uint8_t *m, size_t m_sz)
-{
+void sha2_512_update(sha2_512_t *sha, const uint8_t *m, size_t m_sz) {
   size_t l;
   uint8_t *mp = (uint8_t *)&sha->s[8];
 
   sha->len += m_sz;
   l = 128 - sha->i;
 
-  if (m_sz < l)
-  {
+  if (m_sz < l) {
     memcpy(mp + sha->i, m, m_sz);
     sha->i += m_sz;
     return;
   }
-  if (sha->i > 0)
-  {
+  if (sha->i > 0) {
     memcpy(mp + sha->i, m, l);
     sha2_512_compress(sha->s);
     m_sz -= l;
     m += l;
     sha->i = 0;
   }
-  while (m_sz >= 128)
-  {
+  while (m_sz >= 128) {
     memcpy(mp, m, 128);
     sha2_512_compress(sha->s);
     m_sz -= 128;
@@ -282,16 +262,14 @@ void sha2_512_update(sha2_512_t *sha, const uint8_t *m, size_t m_sz)
 
 /* perform final padding */
 
-void sha2_512_final_pad(sha2_512_t *sha)
-{
+void sha2_512_final_pad(sha2_512_t *sha) {
   uint8_t *mp = (uint8_t *)&sha->s[8];
   uint64_t x;
   size_t i;
 
   i = sha->i; /* last data block */
   mp[i++] = 0x80;
-  if (i > 112)
-  {
+  if (i > 112) {
     memset(mp + i, 0x00, 128 - i);
     sha2_512_compress(sha->s);
     i = 0;
@@ -300,8 +278,7 @@ void sha2_512_final_pad(sha2_512_t *sha)
 
   x = ((uint64_t)sha->len) << 3; /* process length */
   i = 128;
-  while (x > 0)
-  {
+  while (x > 0) {
     mp[--i] = x & 0xFF;
     x >>= 8;
   }
@@ -309,8 +286,7 @@ void sha2_512_final_pad(sha2_512_t *sha)
 
 /* produce h_sz byte hash */
 
-void sha2_512_final_len(sha2_512_t *sha, uint8_t *h, size_t h_sz)
-{
+void sha2_512_final_len(sha2_512_t *sha, uint8_t *h, size_t h_sz) {
   sha2_512_final_pad(sha);
   sha2_512_compress(sha->s);
   memcpy(h, sha->s, h_sz);
@@ -318,37 +294,29 @@ void sha2_512_final_len(sha2_512_t *sha, uint8_t *h, size_t h_sz)
 
 /* public single-call interfaces */
 
-void sha2_512(uint8_t *h, const void *m, size_t m_sz)
-{
+void sha2_512(uint8_t *h, const void *m, size_t m_sz) {
   sha2_512_t sha;
-
   sha2_512_init(&sha);
   sha2_512_update(&sha, m, m_sz);
   sha2_512_final(&sha, h);
 }
 
-void sha2_384(uint8_t *h, const void *m, size_t m_sz)
-{
+void sha2_384(uint8_t *h, const void *m, size_t m_sz) {
   sha2_384_t sha;
-
   sha2_384_init(&sha);
   sha2_512_update(&sha, m, m_sz);
   sha2_512_final_len(&sha, h, 48);
 }
 
-void sha2_512_224(uint8_t *h, const void *m, size_t m_sz)
-{
+void sha2_512_224(uint8_t *h, const void *m, size_t m_sz) {
   sha2_512_t sha;
-
   sha2_512_224_init(&sha);
   sha2_512_update(&sha, m, m_sz);
   sha2_512_final_len(&sha, h, 28);
 }
 
-void sha2_512_256(uint8_t *h, const void *m, size_t m_sz)
-{
+void sha2_512_256(uint8_t *h, const void *m, size_t m_sz) {
   sha2_512_t sha;
-
   sha2_512_256_init(&sha);
   sha2_512_update(&sha, m, m_sz);
   sha2_512_final_len(&sha, h, 32);

@@ -21,20 +21,16 @@ extern "C"
 
   /* SHA2-224: Compute 28-byte hash to "md" from "m" which has "m_sz" bytes. */
   void sha2_224(uint8_t *md, const void *m, size_t m_sz);
-
   /* SHA2-256: Compute 32-byte hash to "md" from "m" which has "m_sz" bytes. */
   void sha2_256(uint8_t *md, const void *m, size_t m_sz);
-
   /* SHA2-384: Compute 48-byte hash to "md" from "m" which has "m_sz" bytes. */
   void sha2_384(uint8_t *md, const void *m, size_t m_sz);
-
   /* SHA2-512: Compute 64-byte hash to "md" from "m" which has "m_sz" bytes. */
   void sha2_512(uint8_t *md, const void *m, size_t m_sz);
 
   /* SHA2-512/224: Compute 64-byte hash to "md" from "m" which has "m_sz" */
   /* bytes. */
   void sha2_512_224(uint8_t *md, const void *m, size_t m_sz);
-
   /* SHA2-512/256: Compute 64-byte hash to "md" from "m" which has "m_sz" */
   /* bytes. */
   void sha2_512_256(uint8_t *md, const void *m, size_t m_sz);
@@ -86,11 +82,9 @@ extern "C"
   /* final padding */
   void sha2_256_final_pad(sha2_256_t *sha);
   void sha2_512_final_pad(sha2_512_t *sha);
-
   /* copy state */
   void sha2_256_copy(sha2_256_t *dst, const sha2_256_t *src);
   void sha2_512_copy(sha2_512_t *dst, const sha2_512_t *src);
-
   /* compression functions */
   void sha2_256_compress(void *v);
   void sha2_512_compress(void *v);

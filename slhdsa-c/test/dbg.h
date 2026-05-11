@@ -12,13 +12,10 @@
 
 /* print checksum */
 void dbg_chk(const char *label, const void *data, size_t data_sz);
-
 /* print structured hex */
 void dbg_dump(const char *label, const void *data, size_t data_sz);
-
 /* print nist kat style hex */
 void dbg_kat(const char *label, const void *data, size_t data_sz);
-
 /* print nist kat style hex */
 void dbg_hex(const char *label, const void *data, size_t data_sz);
 

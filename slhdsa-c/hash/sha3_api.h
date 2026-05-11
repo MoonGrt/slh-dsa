@@ -17,10 +17,8 @@ extern "C"
 #include <stdint.h>
 #include "cbmc.h"
 
-  typedef struct
-  { /* state context */
-    union
-    {
+  typedef struct { /* state context */
+    union {
       uint8_t b[200]; /* 8-bit bytes */
       uint64_t d[25]; /* 64-bit words */
     } st;
@@ -55,7 +53,6 @@ extern "C"
 
   /* squeeze output (can call repeat) */
   void shake_out(sha3_var_t *c, uint8_t *out, size_t out_sz);
-
   /* core permutation */
   void keccak_f1600(uint64_t x[25]);
 

@@ -36,8 +36,7 @@
 #endif
 
 /* context */
-struct slh_var_s
-{
+struct slh_var_s {
   const slh_param_t *prm;
   uint8_t sk_seed[SLH_MAX_N];
   uint8_t sk_prf[SLH_MAX_N];

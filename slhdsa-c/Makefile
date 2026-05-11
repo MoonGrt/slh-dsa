@@ -1,5 +1,3 @@
-.PHONY: default test clean
-
 OBJDIR := build
 
 # SRC
@@ -8,9 +6,10 @@ CSRC   := $(wildcard slh/*.c) $(wildcard hash/*.c)
 OBJS   := $(patsubst %.c,$(OBJDIR)/%.o,$(CSRC))
 DIRS   := $(sort $(dir $(OBJS)))
 # TARGET
-XTEST  ?= xfips205
-XTESTC ?= test/xfips205.c
-TARGET := $(OBJDIR)/$(XTEST)
+XTEST     := $(OBJDIR)/test
+XTESTC    := test/test.c
+XFIPS205  := $(OBJDIR)/xfips205
+XFIPS205C := test/xfips205.c
 
 CC     ?= gcc
 CFLAGS := -Wall -Wextra -Werror=unused-result -Wpedantic -Werror \
@@ -19,23 +18,37 @@ CFLAGS := -Wall -Wextra -Werror=unused-result -Wpedantic -Werror \
           -O3 -std=c99 -fomit-frame-pointer -pedantic \
           -Ihash -Islh \
           $(CFLAGS)
-
 LDLIBS +=
 
-default: $(TARGET)
+default: $(XFIPS205)
+.PHONY: default
 
 $(DIRS):
 	@mkdir -p $@
 
-$(TARGET): $(OBJS) | $(DIRS)
+$(XTEST): $(OBJS) | $(DIRS)
 	$(CC) $(LDFLAGS) $(CFLAGS) -o $@ $(OBJS) $(XTESTC) $(LDLIBS)
+
+$(XFIPS205): $(OBJS) | $(DIRS)
+	$(CC) $(LDFLAGS) $(CFLAGS) -o $@ $(OBJS) $(XFIPS205C) $(LDLIBS)
 
 $(OBJDIR)/%.o: %.c | $(DIRS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-test: $(TARGET)
+test: $(XTEST)
+	@echo -e "-------------------- test --------------------"
+	./test/acvp_case.sh
+.PHONY: test
+
+test-all: $(XFIPS205)
+	@echo -e "-------------------- test --------------------"
 	python3 test/acvp_client.py
+.PHONY: test-all
 
 clean:
 	$(RM) -rf $(OBJDIR) *.rsp *.req *.log
+.PHONY: clean
+
+clean-all:
 	cd test && $(MAKE) clean
+.PHONY: clean-all
