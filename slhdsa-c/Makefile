@@ -37,7 +37,7 @@ $(OBJDIR)/%.o: %.c | $(DIRS)
 
 test: $(XTEST)
 	@echo -e "-------------------- test --------------------"
-	./test/acvp_case.sh
+	./test/test
 .PHONY: test
 
 test-all: $(XFIPS205)

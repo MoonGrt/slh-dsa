@@ -4,6 +4,8 @@ xkat
 xfips205
 acvp_cases.sh
 test/xcount
+build
+test/tests
 
 __pycache__
 */__pycache__

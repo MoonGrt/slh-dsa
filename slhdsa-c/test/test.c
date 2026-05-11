@@ -28,12 +28,12 @@ static const slh_param_t *test_iut[] = {
   &slh_dsa_sha2_192f,
   &slh_dsa_sha2_256s,
   &slh_dsa_sha2_256f,
-  // &slh_dsa_ascon_128s,
-  // &slh_dsa_ascon_128f,
-  // &slh_dsa_ascon_192s,
-  // &slh_dsa_ascon_192f,
-  // &slh_dsa_ascon_256s,
-  // &slh_dsa_ascon_256f,
+  &slh_dsa_ascon_128s,
+  &slh_dsa_ascon_128f,
+  &slh_dsa_ascon_192s,
+  &slh_dsa_ascon_192f,
+  &slh_dsa_ascon_256s,
+  &slh_dsa_ascon_256f,
   NULL
 };
 
@@ -294,7 +294,7 @@ static void sigGen(void) {
   uint8_t *sig_out = NULL;
   size_t sig_out_sz = 0;
 
-  /* flags */
+  /* pre hash flags */
   int pure = 1;
   prehash = find_par("preHash");
   if (prehash != NULL)
@@ -302,6 +302,7 @@ static void sigGen(void) {
 
   /* mandatory inputs */
   msg = hex_data(&msg_sz, find_par("message"));
+  // printf("msg: %s\nmsg_sz: %ld\n", find_par("message"), msg_sz);
   if (msg == NULL) {
     fprintf(stderr, "sigGen: missing/invalid message\n");
     exit(-1);
@@ -336,16 +337,12 @@ static void sigGen(void) {
     sprintf(test_func, "slh_sign_internal()");
     /* Algorithm 19: slh_sign_internal(M, SK, addrnd) */
     sig_out_sz = slh_sign_internal(sig_out, msg, msg_sz, sk, addrnd, prm);
-  }
-  else if (strcmp(iface, "external") == 0) {
+  } else if (strcmp(iface, "external") == 0) {
     if (pure) {
       sprintf(test_func, "slh_sign()");
       /* Algorithm 22: slh_sign(M, ctx, SK) */
-      sig_out_sz =
-          slh_sign(sig_out, msg, msg_sz, ctx, ctx_sz, sk, addrnd, prm);
-    }
-    else
-    {
+      sig_out_sz = slh_sign(sig_out, msg, msg_sz, ctx, ctx_sz, sk, addrnd, prm);
+    } else {
       hashalg = find_par("hashAlg");
       if (hashalg == NULL) {
         fprintf(stderr, "sigGen: missing hashAlg\n");
@@ -353,8 +350,7 @@ static void sigGen(void) {
       }
       sprintf(test_func, "hash_slh_sign(%s)", hashalg);
       /* Algorithm 23:  hash_slh_sign(M, ctx, PH, SK) */
-      sig_out_sz = hash_slh_sign(sig_out, msg, msg_sz, ctx, ctx_sz, hashalg,
-                                 sk, addrnd, prm);
+      sig_out_sz = hash_slh_sign(sig_out, msg, msg_sz, ctx, ctx_sz, hashalg, sk, addrnd, prm);
     }
   } else skip++; /* not sure if this ever invoked */
 
@@ -408,7 +404,6 @@ static void sigVer(void) {
   passed = find_par("testPassed");
   prehash = find_par("preHash");
   reason = find_par("reason");
-  prehash = find_par("preHash");
   if (prehash != NULL)
     pure = strcmp(prehash, "False") == 0;
 
@@ -425,6 +420,7 @@ static void sigVer(void) {
 
   /* mandatory inputs */
   msg = hex_data(&msg_sz, find_par("message"));
+  // printf("msg: %s\nmsg_sz: %ld\n", find_par("message"), msg_sz);
   if (msg == NULL) {
     fprintf(stderr, "sigVer: missing/invalid message\n");
     exit(-1);
@@ -447,15 +443,12 @@ static void sigVer(void) {
     sprintf(test_func, "slh_verify_internal()");
     /* Algorithm 20: slh_verify_internal(M, SIG, PK) */
     res = slh_verify_internal(msg, msg_sz, sig, sig_sz, pk, prm);
-  }
-  else if (strcmp(iface, "external") == 0) {
+  } else if (strcmp(iface, "external") == 0) {
     if (pure) {
       sprintf(test_func, "slh_verify()");
       /* Algorithm 24 slh_verify(M, SIG, var, PK) */
       res = slh_verify(msg, msg_sz, sig, sig_sz, ctx, ctx_sz, pk, prm);
-    }
-    else
-    {
+    } else {
       hashalg = find_par("hashAlg");
       if (hashalg == NULL) {
         fprintf(stderr, "sigVer: missing hashAlg\n");
@@ -463,8 +456,7 @@ static void sigVer(void) {
       }
       sprintf(test_func, "hash_slh_verify(%s)", hashalg);
       /* Algorithm 25: hash_slh_verify(M, SIG, ctx, PH, PK) */
-      res = hash_slh_verify(msg, msg_sz, sig, sig_sz, ctx, ctx_sz, hashalg,
-                            pk, prm);
+      res = hash_slh_verify(msg, msg_sz, sig, sig_sz, ctx, ctx_sz, hashalg, pk, prm);
     }
   } else skip++;
 

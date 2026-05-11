@@ -23,17 +23,23 @@ extern "C"
 
   /* === SLH-DSA parameter sets */
   extern const slh_param_t slh_dsa_sha2_128s;
-  extern const slh_param_t slh_dsa_shake_128s;
   extern const slh_param_t slh_dsa_sha2_128f;
-  extern const slh_param_t slh_dsa_shake_128f;
   extern const slh_param_t slh_dsa_sha2_192s;
-  extern const slh_param_t slh_dsa_shake_192s;
   extern const slh_param_t slh_dsa_sha2_192f;
-  extern const slh_param_t slh_dsa_shake_192f;
   extern const slh_param_t slh_dsa_sha2_256s;
-  extern const slh_param_t slh_dsa_shake_256s;
   extern const slh_param_t slh_dsa_sha2_256f;
+  extern const slh_param_t slh_dsa_shake_128s;
+  extern const slh_param_t slh_dsa_shake_128f;
+  extern const slh_param_t slh_dsa_shake_192s;
+  extern const slh_param_t slh_dsa_shake_192f;
+  extern const slh_param_t slh_dsa_shake_256s;
   extern const slh_param_t slh_dsa_shake_256f;
+  extern const slh_param_t slh_dsa_ascon_128s;
+  extern const slh_param_t slh_dsa_ascon_128f;
+  extern const slh_param_t slh_dsa_ascon_192s;
+  extern const slh_param_t slh_dsa_ascon_192f;
+  extern const slh_param_t slh_dsa_ascon_256s;
+  extern const slh_param_t slh_dsa_ascon_256f;
 
   /* === SLH_DSA API (_internal and _pure functions.) */
   /* see slh_prehash.h for HashSLH functions */
@@ -53,7 +59,6 @@ extern "C"
   /* Generate an SLH-DSA key pair; needs an RBG (a "randombytes()" function) */
   int slh_keygen(uint8_t *sk, uint8_t *pk, int (*rbg)(uint8_t *x, size_t xlen),
                  const slh_param_t *prm);
-
   int slh_keygen_internal(uint8_t *sk, uint8_t *pk, const uint8_t *sk_seed,
                           const uint8_t *sk_prf, const uint8_t *pk_seed,
                           const slh_param_t *prm);
@@ -62,7 +67,6 @@ extern "C"
   size_t slh_sign_internal(uint8_t *sig, const uint8_t *m, size_t m_sz,
                            const uint8_t *sk, const uint8_t *addrnd,
                            const slh_param_t *prm);
-
   size_t slh_sign(uint8_t *sig, const uint8_t *m, size_t m_sz,
                   const uint8_t *ctx, size_t ctx_sz, const uint8_t *sk,
                   const uint8_t *addrnd, const slh_param_t *prm);
@@ -72,7 +76,6 @@ extern "C"
   int slh_verify_internal(const uint8_t *m, size_t m_sz, const uint8_t *sig,
                           size_t sig_sz, const uint8_t *pk,
                           const slh_param_t *prm);
-
   int slh_verify(const uint8_t *m, size_t m_sz, const uint8_t *sig,
                  size_t sig_sz, const uint8_t *ctx, size_t ctx_sz,
                  const uint8_t *pk, const slh_param_t *prm);

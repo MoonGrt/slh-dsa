@@ -67,7 +67,6 @@ void shake_out(sha3_var_t *c, uint8_t *out, size_t out_sz) {
     c->pt = 0;
     c->md_sz = 0;
   }
-
   j = c->pt;
   for (i = 0; i < out_sz; i++) {
     if (j >= c->r_sz) {

@@ -46,8 +46,7 @@ extern "C"
 #define shake_update sha3_update
 
   /* compute a hash "md" of "md_sz" bytes from data in "in" */
-  void shake(uint8_t *md, size_t md_sz, const void *in, size_t in_sz,
-             size_t r_sz);
+  void shake(uint8_t *md, size_t md_sz, const void *in, size_t in_sz, size_t r_sz);
 #define shake128(md, md_sz, in, in_sz) shake(md, md_sz, in, in_sz, 16)
 #define shake256(md, md_sz, in, in_sz) shake(md, md_sz, in, in_sz, 32)
 

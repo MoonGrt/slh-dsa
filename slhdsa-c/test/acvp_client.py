@@ -175,8 +175,10 @@ def slhdsa_load_sigver(req_fn, res_fn, int_fn):
 
 # === Test execution ===
 
-def run_command(cmd):
-    """Run a single test command and return result."""
+def run_command(cmd, cmd_file="cmd.log"):
+    """Run a single test command, save cmd into file, and return result."""
+    # with open(cmd_file, "a", encoding="utf-8") as f:
+    #     f.write(cmd + "\n")
     try:
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
         return (result.returncode, result.stdout, result.stderr)
@@ -260,11 +262,9 @@ def main():
     passed, failed = run_test_kat('keyGen', keygen_kat, args.jobs)
     total_passed += passed
     total_failed += failed
-
     # passed, failed = run_test_kat('sigGen', siggen_kat, args.jobs)
     # total_passed += passed
     # total_failed += failed
-
     # passed, failed = run_test_kat('sigVer', sigver_kat, args.jobs)
     # total_passed += passed
     # total_failed += failed

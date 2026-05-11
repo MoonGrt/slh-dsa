@@ -280,7 +280,7 @@ static size_t ht_sign(slh_var_t *var, uint8_t *sh, uint8_t *m, uint64_t i_tree,
 
 /* === Verify a hypertree signature. */
 /* Algorithm 13: ht_verify(M, SIG_HT, PK.seed, idx_tree, idx_leaf, PK.root) */
-
+#include <stdio.h>
 static int ht_verify(slh_var_t *var, const uint8_t *m, const uint8_t *sig_ht,
                      uint64_t i_tree, uint32_t i_leaf) {
   const slh_param_t *prm = var->prm;
@@ -301,6 +301,15 @@ static int ht_verify(slh_var_t *var, const uint8_t *m, const uint8_t *sig_ht,
     sig_ht += st_sz;
     xmss_pk_from_sig(var, node, i_leaf, sig_ht, node);
   }
+
+  // printf("root    = ");
+  // for (size_t k = 0; k < prm->n; k++)
+  //   printf("%02x", node[k]);
+  // printf("\n");
+  // printf("pk_root = ");
+  // for (size_t k = 0; k < prm->n; k++)
+  //   printf("%02x", var->pk_root[k]);
+  // printf("\n");
 
   return memcmp(node, var->pk_root, prm->n) == 0;
 }
@@ -437,6 +446,15 @@ int slh_keygen_internal(uint8_t *sk, uint8_t *pk, const uint8_t *sk_seed,
   memcpy(pk, pk_seed, n);              /* PK.seed in pk */
   xmss_node(&var, pk + n, 0, prm->hp); /* PK.root in pk (compute) */
   memcpy(sk + 3 * n, pk + n, n);       /* PK.root in sk */
+
+  // printf("sk = ");
+  // for (size_t k = 0; k < prm->n * 4; k++)
+  //   printf("%02X", pk[k]);
+  // printf("\n");
+  // printf("pk = ");
+  // for (size_t k = 0; k < prm->n * 2; k++)
+  //   printf("%02X", pk[k]);
+  // printf("\n");
 
   return 0;
 }
