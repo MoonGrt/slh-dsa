@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "api.h"
+#include "ascon.h"
 #include "cpucycles.h"
 
 #if defined(AVR_UART)

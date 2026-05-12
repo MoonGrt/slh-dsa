@@ -1,4 +1,3 @@
-#include "api.h"
 #include "ascon.h"
 #include "crypto_hash.h"
 #include "permutations.h"
@@ -10,7 +9,7 @@ int crypto_hash(unsigned char* out, const unsigned char* in,
   printbytes("m", in, len);
   /* initialize */
   ascon_state_t s;
-  s.x[0] = ASCON_HASH_IV;
+  s.x[0] = ASCON_INIT;
   s.x[1] = 0;
   s.x[2] = 0;
   s.x[3] = 0;

@@ -1,0 +1,99 @@
+#ifndef ASCON_H_
+#define ASCON_H_
+
+#include <stdint.h>
+
+typedef struct {
+  uint64_t x[5];
+} ascon_state_t;
+
+#ifdef ASCON_HASH256
+#define CRYPTO_VERSION "1.2.8"
+#define CRYPTO_BYTES 32
+#define ASCON_HASH_BYTES 32 /* HASH */
+#define ASCON_HASH_ROUNDS 12
+#define ASCON_VARIANT 2
+#define ASCON_INIT ASCON_HASH_IV
+#endif
+
+#ifdef ASCON_XOF128
+#define CRYPTO_VERSION "1.3.0"
+#define CRYPTO_BYTES 64
+#define ASCON_HASH_BYTES 0 /* XOF */
+#define ASCON_HASH_ROUNDS 12
+#define ASCON_VARIANT 3
+#define ASCON_INIT ASCON_XOF_IV
+#endif
+
+#ifdef ASCON_AEAD128
+#define CRYPTO_VERSION "1.3.0"
+#define CRYPTO_KEYBYTES 16
+#define CRYPTO_NSECBYTES 0
+#define CRYPTO_NPUBBYTES 16
+#define CRYPTO_ABYTES 16
+#define CRYPTO_NOOVERLAP 1
+#define ASCON_AEAD_RATE 16
+#define ASCON_VARIANT 1
+#define ASCON_INIT ASCON_128A_IV
+#endif
+
+#ifdef ASCON_AEADXOF128
+#define CRYPTO_VERSION "1.3.0"
+// AEAD defines
+#define CRYPTO_KEYBYTES 16
+#define CRYPTO_NSECBYTES 0
+#define CRYPTO_NPUBBYTES 16
+#define CRYPTO_ABYTES 16
+#define CRYPTO_NOOVERLAP 1
+#define ASCON_AEAD_RATE 16
+// Hash defines
+#define CRYPTO_BYTES 64
+#define ASCON_HASH_BYTES 0 /* XOF */
+#define ASCON_HASH_ROUNDS 12
+#define ASCON_VARIANT 3
+// Hash init
+#define ASCON_INIT ASCON_128A_IV
+#endif
+
+#ifdef ASCON_MACV13
+#define CRYPTO_VERSION "1.3.0"
+#define CRYPTO_KEYBYTES 16
+#define CRYPTO_BYTES 16
+#define CRYPTO_NOOVERLAP 1
+#define ASCON_PRF_BYTES 16
+#define ASCON_PRF_ROUNDS 12
+#define ASCON_VARIANT 5
+#define ASCON_INIT ASCON_MAC_IV
+#endif
+
+#ifdef ASCON_PRFSV13
+#define CRYPTO_VERSION "1.3.0"
+#define CRYPTO_KEYBYTES 16
+#define CRYPTO_BYTES 16
+#define CRYPTO_NOOVERLAP 1
+#define ASCON_PRF_BYTES 16
+#define ASCON_VARIANT 7
+#define ASCON_INIT ASCON_PRFS_IV | (uint64_t)(inlen * 8) << 48
+#endif
+
+#ifdef ASCON_PRFV13
+#define CRYPTO_VERSION "1.3.0"
+#define CRYPTO_KEYBYTES 16
+#define CRYPTO_BYTES 64
+#define CRYPTO_NOOVERLAP 1
+#define ASCON_PRF_BYTES 0
+#define ASCON_PRF_ROUNDS 12
+#define ASCON_VARIANT 6
+#define ASCON_INIT ASCON_PRF_IV
+#endif
+
+#ifdef ASCON_CXOF128
+#define CRYPTO_VERSION "1.3.0"
+#define CRYPTO_BYTES 64
+#define ASCON_HASH_BYTES 0 /* XOF */
+#define ASCON_HASH_ROUNDS 12
+#define ASCON_VARIANT 4
+#define ASCON_INIT ASCON_HASH_IV
+#endif
+
+#endif /* ASCON_H_ */

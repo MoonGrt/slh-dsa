@@ -42,7 +42,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "api.h"
+#include "ascon.h"
 #include "crypto_aead.h"
 
 #if defined(AVR_UART)

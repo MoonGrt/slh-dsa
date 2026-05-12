@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "api.h"
+#include "ascon.h"
 #if defined(AVR_UART)
 #include "avr_uart.h"
 #endif

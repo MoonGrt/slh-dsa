@@ -41,7 +41,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "api.h"
+#include "ascon.h"
 #include "crypto_hash.h"
 
 #if defined(AVR_UART)
@@ -55,7 +55,7 @@
 
 #define MAX_FILE_NAME 256
 #ifndef MAX_MESSAGE_LENGTH
-#define MAX_MESSAGE_LENGTH 1
+#define MAX_MESSAGE_LENGTH 5
 #endif
 
 #if defined(ASCON_VARIANT) && ASCON_VARIANT == 3
@@ -66,10 +66,8 @@
 
 void init_buffer(unsigned char offset, unsigned char* buffer,
                  unsigned long long numbytes);
-
 void fprint_bstr(FILE* fp, const char* label, const unsigned char* data,
                  unsigned long long length);
-
 int generate_test_vectors();
 
 int main() {
@@ -109,7 +107,7 @@ int generate_test_vectors() {
   fp = stdout;
 #endif
 
-  for (mlen = 0; mlen <= MAX_MESSAGE_LENGTH; mlen++) {
+  for (mlen = 1; mlen <= MAX_MESSAGE_LENGTH; mlen++) {
     msg = malloc(mlen);
     init_buffer(0x00, msg, mlen);
 

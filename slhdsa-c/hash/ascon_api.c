@@ -63,7 +63,6 @@ void ascon_init(ascon_var_t *c, size_t md_sz) {
 void ascon_update(ascon_var_t *c, const void *data, size_t len) {
   const uint8_t *in = (const uint8_t *)data;
   size_t i;
-
   for (i = 0; i < len; i++) {
     c->st.d[0] ^= ascon_byte(in[i], c->pt);
     c->pt++;
@@ -76,14 +75,12 @@ void ascon_update(ascon_var_t *c, const void *data, size_t len) {
 
 void ascon_out(ascon_var_t *c, uint8_t *out, size_t out_sz) {
   size_t i;
-
   if (c->md_sz != 0) {
     c->st.d[0] ^= ascon_byte(0x01, c->pt);
     ascon_p12(c->st.d);
     c->pt = 0;
     c->md_sz = 0;
   }
-
   for (i = 0; i < out_sz; i++) {
     if (c->pt == c->r_sz) {
       ascon_p12(c->st.d);
@@ -98,11 +95,9 @@ void ascon_final(ascon_var_t *c, uint8_t *md) {
   ascon_out(c, md, c->md_sz);
 }
 
-void ascon(uint8_t *md, size_t md_sz, const void *in, size_t in_sz,
-           size_t r_sz) {
+void ascon(uint8_t *md, size_t md_sz, const void *in, size_t in_sz, size_t r_sz) {
   ascon_var_t ascon;
   (void)r_sz;
-
   ascon_init(&ascon, md_sz);
   ascon_update(&ascon, in, in_sz);
   ascon_out(&ascon, md, md_sz);

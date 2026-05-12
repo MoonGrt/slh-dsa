@@ -8,6 +8,8 @@ DIRS   := $(sort $(dir $(OBJS)))
 # TARGET
 XTEST     := $(OBJDIR)/test
 XTESTC    := test/test.c
+XASCON    := $(OBJDIR)/ascon_kat
+XASCONC   := test/ascon_kat.c
 XFIPS205  := $(OBJDIR)/xfips205
 XFIPS205C := test/xfips205.c
 
@@ -29,6 +31,9 @@ $(DIRS):
 $(XTEST): $(OBJS) | $(DIRS)
 	$(CC) $(LDFLAGS) $(CFLAGS) -o $@ $(OBJS) $(XTESTC) $(LDLIBS)
 
+$(XASCON): $(OBJS) | $(DIRS)
+	$(CC) $(LDFLAGS) $(CFLAGS) -o $@ $(OBJS) $(XASCONC) $(LDLIBS)
+
 $(XFIPS205): $(OBJS) | $(DIRS)
 	$(CC) $(LDFLAGS) $(CFLAGS) -o $@ $(OBJS) $(XFIPS205C) $(LDLIBS)
 
@@ -38,6 +43,11 @@ $(OBJDIR)/%.o: %.c | $(DIRS)
 test: $(XTEST)
 	@echo -e "-------------------- test --------------------"
 	./test/test
+.PHONY: test
+
+test-ascon: $(XASCON)
+	@echo -e "-------------------- test --------------------"
+	./build/ascon_kat
 .PHONY: test
 
 test-all: $(XFIPS205)
