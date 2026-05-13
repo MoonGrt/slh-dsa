@@ -126,6 +126,24 @@ static size_t hash_slh_dsa_pad(uint8_t *mp, const uint8_t *m, size_t m_sz,
     shake256(mp + mp_sz, 64, m, m_sz);
     mp_sz += 64;
   }
+  // else if (strcmp(ph, "ASCON-HASH256") == 0) {
+  //   memcpy(mp + mp_sz, shake_256_oid, 11);
+  //   mp_sz += 11;
+  //   shake256(mp + mp_sz, 64, m, m_sz);
+  //   mp_sz += 32;
+  // }
+  // else if (strcmp(ph, "ASCON-XOF128") == 0) {
+  //   memcpy(mp + mp_sz, shake_256_oid, 11);
+  //   mp_sz += 11;
+  //   shake256(mp + mp_sz, 64, m, m_sz);
+  //   mp_sz += 32;
+  // }
+  // else if (strcmp(ph, "ASCON-XOF256") == 0) {
+  //   memcpy(mp + mp_sz, shake_256_oid, 11);
+  //   mp_sz += 11;
+  //   shake256(mp + mp_sz, 64, m, m_sz);
+  //   mp_sz += 64;
+  // }
   else return 0;
 
   return mp_sz;

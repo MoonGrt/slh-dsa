@@ -22,7 +22,7 @@ static void ascon_h_msg(slh_var_t *var, uint8_t *h, const uint8_t *r,
   size_t n = var->prm->n;
   uint8_t buf[2];
 
-  ascon256_init(&ascon);
+  asconxof256_init(&ascon);
   ascon_update(&ascon, r, n);
   ascon_update(&ascon, var->pk_seed, n);
   ascon_update(&ascon, var->pk_root, n);
@@ -35,7 +35,7 @@ static void ascon_h_msg(slh_var_t *var, uint8_t *h, const uint8_t *r,
     ascon_update(&ascon, ctx, ctx_sz);
   }
   ascon_update(&ascon, m, m_sz);
-  ascon_out(&ascon, h, var->prm->m);
+  asconxof_out(&ascon, h, var->prm->m);
 }
 
 /* F(PK.seed, ADRS, M1 ) = ASCON256(PK.seed || ADRS || M1, 8n) */
@@ -43,11 +43,11 @@ static void ascon_h_msg(slh_var_t *var, uint8_t *h, const uint8_t *r,
 static void ascon_f(slh_var_t *var, uint8_t *h, const uint8_t *m1) {
   ascon_var_t ascon;
   size_t n = var->prm->n;
-  ascon256_init(&ascon);
+  asconxof256_init(&ascon);
   ascon_update(&ascon, var->pk_seed, n);
   ascon_update(&ascon, (const uint8_t *)var->adrs->u8, 32);
   ascon_update(&ascon, m1, n);
-  ascon_out(&ascon, h, n);
+  asconxof_out(&ascon, h, n);
 }
 
 /* PRF(PK.seed, SK.seed, ADRS) = ASCON256(PK.seed || ADRS || SK.seed, 8n) */
@@ -65,7 +65,7 @@ static void ascon_prf_msg(slh_var_t *var, uint8_t *h, const uint8_t *opt_rand,
   size_t n = var->prm->n;
   uint8_t buf[2];
 
-  ascon256_init(&ascon);
+  asconxof256_init(&ascon);
   ascon_update(&ascon, var->sk_prf, n);
   ascon_update(&ascon, opt_rand, n);
 
@@ -77,7 +77,7 @@ static void ascon_prf_msg(slh_var_t *var, uint8_t *h, const uint8_t *opt_rand,
     ascon_update(&ascon, ctx, ctx_sz);
   }
   ascon_update(&ascon, m, m_sz);
-  ascon_out(&ascon, h, n);
+  asconxof_out(&ascon, h, n);
 }
 
 /* T_l(PK.seed, ADRS, M ) = ASCON256(PK.seed || ADRS || Ml, 8n) */
@@ -85,11 +85,11 @@ static void ascon_prf_msg(slh_var_t *var, uint8_t *h, const uint8_t *opt_rand,
 static void ascon_t(slh_var_t *var, uint8_t *h, const uint8_t *m, size_t m_sz) {
   ascon_var_t ascon;
   size_t n = var->prm->n;
-  ascon256_init(&ascon);
+  asconxof256_init(&ascon);
   ascon_update(&ascon, var->pk_seed, n);
   ascon_update(&ascon, (const uint8_t *)var->adrs->u8, 32);
   ascon_update(&ascon, m, m_sz);
-  ascon_out(&ascon, h, n);
+  asconxof_out(&ascon, h, n);
 }
 
 /* H(PK.seed, ADRS, M2 ) = ASCON256(PK.seed || ADRS || M2, 8n) */
@@ -98,12 +98,12 @@ static void ascon_h(slh_var_t *var, uint8_t *h, const uint8_t *m1,
                     const uint8_t *m2) {
   ascon_var_t ascon;
   size_t n = var->prm->n;
-  ascon256_init(&ascon);
+  asconxof256_init(&ascon);
   ascon_update(&ascon, var->pk_seed, n);
   ascon_update(&ascon, (const uint8_t *)var->adrs->u8, 32);
   ascon_update(&ascon, m1, n);
   ascon_update(&ascon, m2, n);
-  ascon_out(&ascon, h, n);
+  asconxof_out(&ascon, h, n);
 }
 
 /* create a context */

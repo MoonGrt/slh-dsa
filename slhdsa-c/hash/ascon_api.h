@@ -17,9 +17,6 @@ extern "C"
 #include <stdint.h>
 #include "cbmc.h"
 
-#define ASCON_XOF_RATE 8
-#define ASCON_XOF_IV UINT64_C(0x0000080000cc0003)
-
   typedef struct { /* state context */
     union {
       uint8_t b[40]; /* 8-bit bytes */
@@ -29,30 +26,107 @@ extern "C"
   } ascon_var_t;
 
   /* incremental interfece */
-  void ascon_init(ascon_var_t *c,
+  void asconhash_init(ascon_var_t *c,
                  size_t md_sz) /* md_sz = hash output in bytes */
   __contract__(
     requires(memory_no_alias(c, sizeof(ascon_var_t)))
     requires(md_sz <= 64)
     assigns(object_whole(c))
   );
+  void asconxof_init(ascon_var_t *c,
+                 size_t md_sz) /* md_sz = hash output in bytes */
+  __contract__(
+    requires(memory_no_alias(c, sizeof(ascon_var_t)))
+    requires(md_sz <= 64)
+    assigns(object_whole(c))
+  );
+#define asconhash256_init(c) asconhash_init(c, 32)
+#define asconxof128_init(c) asconxof_init(c, 16)
+#define asconxof256_init(c) asconxof_init(c, 32)
 
-  void ascon_update(ascon_var_t *c, const void *data, size_t data_sz);
-  void ascon_final(ascon_var_t *c, uint8_t *md); /* digest goes to md */
-
-/* Ascon-XOF128 extensible-output functions */
-#define ascon128_init(c) ascon_init(c, 16)
-#define ascon256_init(c) ascon_init(c, 32)
+  /* absorb input */
+  void ascon_absorb(ascon_var_t *c, const void *data, size_t data_sz);
+  /* squeeze output */
+  void ascon_squeeze(ascon_var_t *c, uint8_t *out, size_t out_sz);
+#define ascon_update ascon_absorb
 
   /* compute a hash "md" of "md_sz" bytes from data in "in" */
-  void ascon(uint8_t *md, size_t md_sz, const void *in, size_t in_sz, size_t r_sz);
-#define ascon128(md, md_sz, in, in_sz) ascon(md, md_sz, in, in_sz, 16)
-#define ascon256(md, md_sz, in, in_sz) ascon(md, md_sz, in, in_sz, 32)
+  void asconhash(uint8_t *md, size_t md_sz, const void *in, size_t in_sz);
+  /* hash: squeeze output */
+  void asconhash_out(ascon_var_t *c, uint8_t *md); /* digest goes to md */
+  /* compute a hash "md" of "md_sz" bytes from data in "in" */
+  void asconxof(uint8_t *md, size_t md_sz, const void *in, size_t in_sz, size_t r_sz);
+  /* xof: squeeze output (can call repeat) */
+  void asconxof_out(ascon_var_t *c, uint8_t *out, size_t out_sz);
+#define asconxof128(md, md_sz, in, in_sz) asconxof(md, md_sz, in, in_sz, 16)
+#define asconxof256(md, md_sz, in, in_sz) asconxof(md, md_sz, in, in_sz, 32)
 
-  /* squeeze output (can call repeat) */
-  void ascon_out(ascon_var_t *c, uint8_t *out, size_t out_sz);
-  /* core permutation */
-  void ascon_p12(uint64_t x[5]);
+  /* CONSTANTS_H_ */
+#define ASCON_HASH_VARIANT 2
+#define ASCON_XOF_VARIANT 3
+#define ASCON_PA_ROUNDS 12
+#define ASCON_HASH_PB_ROUNDS 12
+#define ASCON_HASH_SIZE 32
+#define ASCON_HASH_RATE 8
+#define ASCON_HASH_IV                         \
+  (((uint64_t)(ASCON_HASH_VARIANT) << 0) |    \
+   ((uint64_t)(ASCON_PA_ROUNDS) << 16) |      \
+   ((uint64_t)(ASCON_HASH_PB_ROUNDS) << 20) | \
+   ((uint64_t)(ASCON_HASH_SIZE * 8) << 24) |  \
+   ((uint64_t)(ASCON_HASH_RATE) << 40))
+#define ASCON_XOF_IV                          \
+  (((uint64_t)(ASCON_XOF_VARIANT) << 0) |     \
+   ((uint64_t)(ASCON_PA_ROUNDS) << 16) |      \
+   ((uint64_t)(ASCON_HASH_PB_ROUNDS) << 20) | \
+   ((uint64_t)(ASCON_HASH_RATE) << 40))
+  /* CONSTANTS_H_ */
+
+  /* PERMUTATIONS_H_ */
+  static inline uint64_t ROR(uint64_t x, int n) {
+    return x >> n | x << (-n & 63);
+  }
+  static inline void ROUND(uint64_t* x, uint8_t C) {
+    uint64_t t[5];
+    /* addition of round constant */
+    x[2] ^= C;
+    /* substitution layer */
+    x[0] ^= x[4];
+    x[4] ^= x[3];
+    x[2] ^= x[1];
+    /* start of keccak s-box */
+    t[0] = x[0] ^ (~x[1] & x[2]);
+    t[1] = x[1] ^ (~x[2] & x[3]);
+    t[2] = x[2] ^ (~x[3] & x[4]);
+    t[3] = x[3] ^ (~x[4] & x[0]);
+    t[4] = x[4] ^ (~x[0] & x[1]);
+    /* end of keccak s-box */
+    t[1] ^= t[0];
+    t[0] ^= t[4];
+    t[3] ^= t[2];
+    t[2] = ~t[2];
+    /* linear diffusion layer */
+    x[0] = t[0] ^ ROR(t[0], 19) ^ ROR(t[0], 28);
+    x[1] = t[1] ^ ROR(t[1], 61) ^ ROR(t[1], 39);
+    x[2] = t[2] ^ ROR(t[2], 1) ^ ROR(t[2], 6);
+    x[3] = t[3] ^ ROR(t[3], 10) ^ ROR(t[3], 17);
+    x[4] = t[4] ^ ROR(t[4], 7) ^ ROR(t[4], 41);
+  }
+  static inline void P12(uint64_t x[5]) {
+    ROUND(x, 0xf0);
+    ROUND(x, 0xe1);
+    ROUND(x, 0xd2);
+    ROUND(x, 0xc3);
+    ROUND(x, 0xb4);
+    ROUND(x, 0xa5);
+    ROUND(x, 0x96);
+    ROUND(x, 0x87);
+    ROUND(x, 0x78);
+    ROUND(x, 0x69);
+    ROUND(x, 0x5a);
+    ROUND(x, 0x4b);
+  }
+  /* PERMUTATIONS_H_ */
+
 
 #ifdef __cplusplus
 }

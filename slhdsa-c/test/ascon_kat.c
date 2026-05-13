@@ -117,7 +117,7 @@ int main(int argc, char **argv) {
   message = hex_data(&message_sz, find_par("message"));
 
   uint8_t md[64];
-  ascon256(md, sizeof(md), message, message_sz);
+  asconxof256(md, sizeof(md), message, message_sz);
 
   uint8_t *anwser = NULL;
   size_t anwser_sz = 0;
