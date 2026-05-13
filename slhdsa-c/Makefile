@@ -47,7 +47,7 @@ test: $(XTEST)
 
 test-ascon: $(XASCON)
 	@echo -e "-------------------- test --------------------"
-	./build/ascon_kat
+	./test/ascon_kat
 .PHONY: test
 
 test-all: $(XFIPS205)

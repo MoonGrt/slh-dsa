@@ -7,13 +7,11 @@
 
 #include <string.h>
 #include "ascon_api.h"
+#include "cbmc.h"
 
-#define ASCON_XOF_RATE 8
-#define ASCON_XOF_IV UINT64_C(0x0000080000cc0003)
+/* initialize the context for SHA3 */
 
-static uint64_t ror64(uint64_t x, int n) {
-  return (x >> n) | (x << ((-n) & 63));
-}
+#include "plat_local.h"
 
 static uint64_t ascon_byte(uint8_t x, size_t i) {
   return (uint64_t)x << (8 * i);
@@ -60,6 +58,8 @@ void ascon_init(ascon_var_t *c, size_t md_sz) {
   ascon_p12(c->st.d);
 }
 
+/* update state with more data */
+
 void ascon_update(ascon_var_t *c, const void *data, size_t len) {
   const uint8_t *in = (const uint8_t *)data;
   size_t i;
@@ -72,6 +72,17 @@ void ascon_update(ascon_var_t *c, const void *data, size_t len) {
     }
   }
 }
+
+/* finalize and output a hash */
+
+void ascon_final(ascon_var_t *c, uint8_t *md) {
+  ascon_out(c, md, c->md_sz);
+}
+
+/* compute a ASCON hash "md" of "md_sz" bytes from data in "in" */
+
+/* ASCON XOF extensible-output functionality */
+/* squeeze output */
 
 void ascon_out(ascon_var_t *c, uint8_t *out, size_t out_sz) {
   size_t i;
@@ -91,9 +102,7 @@ void ascon_out(ascon_var_t *c, uint8_t *out, size_t out_sz) {
   }
 }
 
-void ascon_final(ascon_var_t *c, uint8_t *md) {
-  ascon_out(c, md, c->md_sz);
-}
+/* compute a ASCON hash "md" of "md_sz" bytes from data in "in" */
 
 void ascon(uint8_t *md, size_t md_sz, const void *in, size_t in_sz, size_t r_sz) {
   ascon_var_t ascon;

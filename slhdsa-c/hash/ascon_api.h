@@ -17,6 +17,9 @@ extern "C"
 #include <stdint.h>
 #include "cbmc.h"
 
+#define ASCON_XOF_RATE 8
+#define ASCON_XOF_IV UINT64_C(0x0000080000cc0003)
+
   typedef struct { /* state context */
     union {
       uint8_t b[40]; /* 8-bit bytes */
