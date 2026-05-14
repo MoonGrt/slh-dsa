@@ -1,9 +1,4 @@
-/*
- * Copyright (c) The slhdsa-c project authors
- * SPDX-License-Identifier: Apache-2.0 OR ISC OR MIT
- */
-
-/* === Portable C code: Functions for instantiation of SLH-DSA with ASCON */
+/* === Portable C code: Functions for instantiation of SLH-DSA with Ascon-Sign */
 
 #include <string.h>
 #include "ascon_api.h"
@@ -22,20 +17,20 @@ static void ascon_h_msg(slh_var_t *var, uint8_t *h, const uint8_t *r,
   size_t n = var->prm->n;
   uint8_t buf[2];
 
-  asconxof256_init(&ascon);
-  ascon_update(&ascon, r, n);
-  ascon_update(&ascon, var->pk_seed, n);
-  ascon_update(&ascon, var->pk_root, n);
+  asconxof_init(&ascon, 32);
+  ascon_absorb(&ascon, r, n);
+  ascon_absorb(&ascon, var->pk_seed, n);
+  ascon_absorb(&ascon, var->pk_root, n);
 
   /* add "pure" domain separator and context, if supplied */
   if (ctx_sz != SLH_CTX_SZ_NO_CONTEXT) {
     buf[0] = 0;
     buf[1] = ctx_sz & 0xFF;
-    ascon_update(&ascon, buf, 2);
-    ascon_update(&ascon, ctx, ctx_sz);
+    ascon_absorb(&ascon, buf, 2);
+    ascon_absorb(&ascon, ctx, ctx_sz);
   }
-  ascon_update(&ascon, m, m_sz);
-  asconxof_out(&ascon, h, var->prm->m);
+  ascon_absorb(&ascon, m, m_sz);
+  ascon_squeeze(&ascon, h, var->prm->m);
 }
 
 /* F(PK.seed, ADRS, M1 ) = ASCON256(PK.seed || ADRS || M1, 8n) */
@@ -43,11 +38,11 @@ static void ascon_h_msg(slh_var_t *var, uint8_t *h, const uint8_t *r,
 static void ascon_f(slh_var_t *var, uint8_t *h, const uint8_t *m1) {
   ascon_var_t ascon;
   size_t n = var->prm->n;
-  asconxof256_init(&ascon);
-  ascon_update(&ascon, var->pk_seed, n);
-  ascon_update(&ascon, (const uint8_t *)var->adrs->u8, 32);
-  ascon_update(&ascon, m1, n);
-  asconxof_out(&ascon, h, n);
+  asconhash_init(&ascon, n);
+  ascon_absorb(&ascon, var->pk_seed, n);
+  ascon_absorb(&ascon, (const uint8_t *)var->adrs->u8, 32);
+  ascon_absorb(&ascon, m1, n);
+  ascon_squeeze(&ascon, h, n);
 }
 
 /* PRF(PK.seed, SK.seed, ADRS) = ASCON256(PK.seed || ADRS || SK.seed, 8n) */
@@ -65,19 +60,19 @@ static void ascon_prf_msg(slh_var_t *var, uint8_t *h, const uint8_t *opt_rand,
   size_t n = var->prm->n;
   uint8_t buf[2];
 
-  asconxof256_init(&ascon);
-  ascon_update(&ascon, var->sk_prf, n);
-  ascon_update(&ascon, opt_rand, n);
+  asconhash_init(&ascon, n);
+  ascon_absorb(&ascon, var->sk_prf, n);
+  ascon_absorb(&ascon, opt_rand, n);
 
   /* add "pure" domain separator and context, if supplied */
   if (ctx_sz != SLH_CTX_SZ_NO_CONTEXT) {
     buf[0] = 0;
     buf[1] = ctx_sz & 0xFF;
-    ascon_update(&ascon, buf, 2);
-    ascon_update(&ascon, ctx, ctx_sz);
+    ascon_absorb(&ascon, buf, 2);
+    ascon_absorb(&ascon, ctx, ctx_sz);
   }
-  ascon_update(&ascon, m, m_sz);
-  asconxof_out(&ascon, h, n);
+  ascon_absorb(&ascon, m, m_sz);
+  ascon_squeeze(&ascon, h, n);
 }
 
 /* T_l(PK.seed, ADRS, M ) = ASCON256(PK.seed || ADRS || Ml, 8n) */
@@ -85,11 +80,11 @@ static void ascon_prf_msg(slh_var_t *var, uint8_t *h, const uint8_t *opt_rand,
 static void ascon_t(slh_var_t *var, uint8_t *h, const uint8_t *m, size_t m_sz) {
   ascon_var_t ascon;
   size_t n = var->prm->n;
-  asconxof256_init(&ascon);
-  ascon_update(&ascon, var->pk_seed, n);
-  ascon_update(&ascon, (const uint8_t *)var->adrs->u8, 32);
-  ascon_update(&ascon, m, m_sz);
-  asconxof_out(&ascon, h, n);
+  asconhash_init(&ascon, n);
+  ascon_absorb(&ascon, var->pk_seed, n);
+  ascon_absorb(&ascon, (const uint8_t *)var->adrs->u8, 32);
+  ascon_absorb(&ascon, m, m_sz);
+  ascon_squeeze(&ascon, h, n);
 }
 
 /* H(PK.seed, ADRS, M2 ) = ASCON256(PK.seed || ADRS || M2, 8n) */
@@ -98,12 +93,12 @@ static void ascon_h(slh_var_t *var, uint8_t *h, const uint8_t *m1,
                     const uint8_t *m2) {
   ascon_var_t ascon;
   size_t n = var->prm->n;
-  asconxof256_init(&ascon);
-  ascon_update(&ascon, var->pk_seed, n);
-  ascon_update(&ascon, (const uint8_t *)var->adrs->u8, 32);
-  ascon_update(&ascon, m1, n);
-  ascon_update(&ascon, m2, n);
-  asconxof_out(&ascon, h, n);
+  asconhash_init(&ascon, n);
+  ascon_absorb(&ascon, var->pk_seed, n);
+  ascon_absorb(&ascon, (const uint8_t *)var->adrs->u8, 32);
+  ascon_absorb(&ascon, m1, n);
+  ascon_absorb(&ascon, m2, n);
+  ascon_squeeze(&ascon, h, n);
 }
 
 /* create a context */
@@ -134,12 +129,10 @@ static void ascon_mk_var(slh_var_t *var, const uint8_t *pk, const uint8_t *sk,
 static void ascon_chain(slh_var_t *var, uint8_t *tmp, const uint8_t *x,
                         uint32_t i, uint32_t s) {
   uint32_t j;
-
   if (s == 0) { /* no-op */
     memcpy(tmp, x, var->prm->n);
     return;
   }
-
   memcpy(tmp, x, var->prm->n);
   for (j = 0; j < s; j++) {
     adrs_set_hash_address(var, i + j); /* address */

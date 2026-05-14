@@ -71,25 +71,13 @@ void ascon_squeeze(ascon_var_t *c, uint8_t *out, size_t out_sz) {
   c->pt = j;
 }
 
-/* finalize and output a hash */
-
-void asconhash_out(ascon_var_t *c, uint8_t *md) {
-  ascon_squeeze(c, md, c->md_sz);
-}
-
 /* compute a ASCON hash "md" of "md_sz" bytes from data in "in" */
 
-void asconhash(uint8_t *md, size_t md_sz, const void *in, size_t in_sz) {
+void asconhash(uint8_t *md, size_t md_sz, const void *in, size_t in_sz, size_t r_sz) {
   ascon_var_t ascon;
-  asconhash_init(&ascon, md_sz);
+  asconhash_init(&ascon, r_sz);
   ascon_absorb(&ascon, in, in_sz);
-  asconhash_out(&ascon, md);
-}
-
-/* ASCON XOF extensible-output functionality */
-
-void asconxof_out(ascon_var_t *c, uint8_t *out, size_t out_sz) {
-  ascon_squeeze(c, out, out_sz);
+  ascon_squeeze(&ascon, md, md_sz);
 }
 
 /* compute a ASCON hash "md" of "md_sz" bytes from data in "in" */
@@ -98,5 +86,5 @@ void asconxof(uint8_t *md, size_t md_sz, const void *in, size_t in_sz, size_t r_
   ascon_var_t ascon;
   asconxof_init(&ascon, r_sz);
   ascon_absorb(&ascon, in, in_sz);
-  asconxof_out(&ascon, md, md_sz);
+  ascon_squeeze(&ascon, md, md_sz);
 }

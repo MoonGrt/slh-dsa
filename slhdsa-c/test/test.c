@@ -476,7 +476,23 @@ static void sigVer(void) {
 }
 
 int main(int argc, char **argv) {
-  parse_args(argc, argv);
+  char *default_argv[] = {
+      argv[0],
+      "-tcId", "1",
+      "-skSeed", "96933BBFBAA46828BD4CF83A8CD2419D",
+      "-skPrf", "7863D69CF3EAFC91E47B33CED9985459",
+      "-pkSeed", "C58383F7579C26AFA6FE3E607DA0D047",
+      "-parameterSet", "SLH-DSA-SHAKE-128f",
+      "keyGen"
+  };
+
+  int default_argc = sizeof(default_argv) / sizeof(default_argv[0]);
+
+  if (argc == 1) {
+    parse_args(default_argc, default_argv);
+  } else {
+    parse_args(argc, argv);
+  }
 
   if (strcmp(cmd, "keyGen") == 0) {
     keyGen();

@@ -40,26 +40,16 @@ extern "C"
     requires(md_sz <= 64)
     assigns(object_whole(c))
   );
-#define asconhash256_init(c) asconhash_init(c, 32)
-#define asconxof128_init(c) asconxof_init(c, 16)
-#define asconxof256_init(c) asconxof_init(c, 32)
 
   /* absorb input */
   void ascon_absorb(ascon_var_t *c, const void *data, size_t data_sz);
   /* squeeze output */
   void ascon_squeeze(ascon_var_t *c, uint8_t *out, size_t out_sz);
-#define ascon_update ascon_absorb
 
   /* compute a hash "md" of "md_sz" bytes from data in "in" */
-  void asconhash(uint8_t *md, size_t md_sz, const void *in, size_t in_sz);
-  /* hash: squeeze output */
-  void asconhash_out(ascon_var_t *c, uint8_t *md); /* digest goes to md */
+  void asconhash(uint8_t *md, size_t md_sz, const void *in, size_t in_sz, size_t r_sz);
   /* compute a hash "md" of "md_sz" bytes from data in "in" */
   void asconxof(uint8_t *md, size_t md_sz, const void *in, size_t in_sz, size_t r_sz);
-  /* xof: squeeze output (can call repeat) */
-  void asconxof_out(ascon_var_t *c, uint8_t *out, size_t out_sz);
-#define asconxof128(md, md_sz, in, in_sz) asconxof(md, md_sz, in, in_sz, 16)
-#define asconxof256(md, md_sz, in, in_sz) asconxof(md, md_sz, in, in_sz, 32)
 
   /* CONSTANTS_H_ */
 #define ASCON_HASH_VARIANT 2

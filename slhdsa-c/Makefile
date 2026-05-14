@@ -17,9 +17,11 @@ CC     ?= gcc
 CFLAGS := -Wall -Wextra -Werror=unused-result -Wpedantic -Werror \
           -Wmissing-prototypes -Wshadow -Wpointer-arith \
           -Wredundant-decls -Wno-long-long -Wno-unknown-pragmas \
-          -O3 -std=c99 -fomit-frame-pointer -pedantic \
+          -std=c99 -fomit-frame-pointer -pedantic \
           -Ihash -Islh \
           $(CFLAGS)
+CFLAGS += -g -O0
+# CFLAGS += -O3
 LDLIBS +=
 
 default: $(XFIPS205)
@@ -54,6 +56,10 @@ test-all: $(XFIPS205)
 	@echo -e "-------------------- test --------------------"
 	python3 test/acvp_client.py
 .PHONY: test-all
+
+gdb: $(XTEST)
+	gdb ./$(XTEST)
+.PHONY: gdb
 
 clean:
 	$(RM) -rf $(OBJDIR) *.rsp *.req *.log
