@@ -10,6 +10,8 @@
 #include "slh_var.h"
 #include "slh_sys.h"
 
+#include "trace.h"
+
 /* === Internal */
 
 /* helper functions to compute "len = len1 + len2" */
@@ -210,14 +212,14 @@ static size_t xmss_sign(slh_var_t *var, uint8_t *sx, const uint8_t *m,
 
   for (j = 0; j < prm->hp; j++) {
     k = (idx >> j) ^ 1;
-    xmss_node(var, auth, k, j);
+    LEVEL_VOID("xmss_node", xmss_node(var, auth, k, j));
     auth += n;
   }
   sx_sz += prm->hp * n;
 
   adrs_set_type_and_clear_not_kp(var, ADRS_WOTS_HASH);
   adrs_set_key_pair_address(var, idx);
-  wots_sign(var, sx, m);
+  LEVEL_VOID("wots_sign", wots_sign(var, sx, m));
 
   return sx_sz;
 }
@@ -227,6 +229,8 @@ static size_t xmss_sign(slh_var_t *var, uint8_t *sx, const uint8_t *m,
 
 static void xmss_pk_from_sig(slh_var_t *var, uint8_t *root, uint32_t idx,
                              const uint8_t *sig, const uint8_t *m) {
+  // TRACE(cJSON_AddNumberToObject(INFO_NODE, "ID", idx));
+
   const slh_param_t *prm = var->prm;
   size_t n = prm->n;
   uint32_t k;
@@ -235,7 +239,7 @@ static void xmss_pk_from_sig(slh_var_t *var, uint8_t *root, uint32_t idx,
   adrs_set_type_and_clear_not_kp(var, ADRS_WOTS_HASH);
   adrs_set_key_pair_address(var, idx);
 
-  wots_pk_from_sig(var, root, sig, m);
+  LEVEL_VOID("wots_pk_from_sig", wots_pk_from_sig(var, root, sig, m));
   adrs_set_type_and_clear(var, ADRS_TREE);
 
   auth = sig + (get_len(prm) * n);
@@ -263,16 +267,18 @@ static size_t ht_sign(slh_var_t *var, uint8_t *sh, uint8_t *m, uint64_t i_tree,
 
   adrs_zero(var);
   adrs_set_tree_address(var, i_tree);
-  sx_sz = xmss_sign(var, sh, m, i_leaf);
+  sx_sz = LEVEL_RETN("xmss_sign", xmss_sign(var, sh, m, i_leaf));
 
   for (j = 1; j < prm->d; j++) {
-    xmss_pk_from_sig(var, m, i_leaf, sh, m);
+    TRACE(snprintf(level_name, sizeof(level_name), "xmss_pk_from_sig%d", j));
+    LEVEL_VOID(level_name, xmss_pk_from_sig(var, m, i_leaf, sh, m));
     sh += sx_sz;
     i_leaf = i_tree & ((1 << prm->hp) - 1);
     i_tree >>= prm->hp;
     adrs_set_layer_address(var, j);
     adrs_set_tree_address(var, i_tree);
-    xmss_sign(var, sh, m, i_leaf);
+    TRACE(snprintf(level_name, sizeof(level_name), "xmss_sign%d", j));
+    LEVEL_VOID(level_name, xmss_sign(var, sh, m, i_leaf));
   }
 
   return sx_sz * prm->d;
@@ -290,7 +296,7 @@ static int ht_verify(slh_var_t *var, const uint8_t *m, const uint8_t *sig_ht,
 
   adrs_zero(var);
   adrs_set_tree_address(var, i_tree);
-  xmss_pk_from_sig(var, node, i_leaf, sig_ht, m);
+  LEVEL_VOID("xmss_pk_from_sig0", xmss_pk_from_sig(var, node, i_leaf, sig_ht, m));
 
   st_sz = (prm->hp + get_len(prm)) * prm->n;
   for (j = 1; j < prm->d; j++) {
@@ -299,17 +305,9 @@ static int ht_verify(slh_var_t *var, const uint8_t *m, const uint8_t *sig_ht,
     adrs_set_layer_address(var, j);
     adrs_set_tree_address(var, i_tree);
     sig_ht += st_sz;
-    xmss_pk_from_sig(var, node, i_leaf, sig_ht, node);
+    TRACE(snprintf(level_name, sizeof(level_name), "xmss_pk_from_sig%d", j));
+    LEVEL_VOID(level_name, xmss_pk_from_sig(var, node, i_leaf, sig_ht, node));
   }
-
-  // printf("root    = ");
-  // for (size_t k = 0; k < prm->n; k++)
-  //   printf("%02x", node[k]);
-  // printf("\n");
-  // printf("pk_root = ");
-  // for (size_t k = 0; k < prm->n; k++)
-  //   printf("%02x", var->pk_root[k]);
-  // printf("\n");
 
   return memcmp(node, var->pk_root, prm->n) == 0;
 }
@@ -367,7 +365,8 @@ static size_t fors_sign(slh_var_t *var, uint8_t *sf, const uint8_t *md) {
 
     for (j = 0; j < prm->a; j++) {
       s = (vi[i] >> j) ^ 1;
-      fors_node(var, sf, (i << (prm->a - j)) + s, j);
+      TRACE(snprintf(level_name, sizeof(level_name), "fors_node%d", j));
+      LEVEL_VOID(level_name, fors_node(var, sf, (i << (prm->a - j)) + s, j));
       sf += n;
     }
   }
@@ -391,17 +390,14 @@ static void fors_pk_from_sig(slh_var_t *var, uint8_t *pk, const uint8_t *sf,
   node = root;
   for (i = 0; i < prm->k; i++) {
     adrs_set_tree_height(var, 0);
-
     idx = (i << prm->a) + vi[i];
     adrs_set_tree_index(var, idx);
 
     prm->h_f(var, node, sf);
     sf += n;
-
     for (j = 0; j < prm->a; j++) {
       adrs_set_tree_height(var, j + 1);
       adrs_set_tree_index(var, idx >> (j + 1));
-
       if (((vi[i] >> j) & 1) == 0)
         prm->h_h(var, node, node, sf);
       else
@@ -443,18 +439,9 @@ int slh_keygen_internal(uint8_t *sk, uint8_t *pk, const uint8_t *sk_seed,
 
   adrs_zero(&var);
   adrs_set_layer_address(&var, prm->d - 1);
-  memcpy(pk, pk_seed, n);              /* PK.seed in pk */
-  xmss_node(&var, pk + n, 0, prm->hp); /* PK.root in pk (compute) */
-  memcpy(sk + 3 * n, pk + n, n);       /* PK.root in sk */
-
-  // printf("sk = ");
-  // for (size_t k = 0; k < prm->n * 4; k++)
-  //   printf("%02X", pk[k]);
-  // printf("\n");
-  // printf("pk = ");
-  // for (size_t k = 0; k < prm->n * 2; k++)
-  //   printf("%02X", pk[k]);
-  // printf("\n");
+  memcpy(pk, pk_seed, n);                          /* PK.seed in pk */
+  LEVEL_VOID("xmss_node", xmss_node(&var, pk + n, 0, prm->hp)); /* PK.root in pk (compute) */
+  memcpy(sk + 3 * n, pk + n, n);                   /* PK.root in sk */
 
   return 0;
 }
@@ -475,7 +462,7 @@ int slh_keygen(uint8_t *sk, uint8_t *pk, int (*rbg)(uint8_t *x, size_t xlen),
 
   adrs_zero(&var);
   adrs_set_layer_address(&var, prm->d - 1);
-  xmss_node(&var, pk_root, 0, prm->hp);
+  LEVEL_VOID("xmss_node", xmss_node(&var, pk_root, 0, prm->hp));
 
   /* fill pk_root */
   memcpy(sk + 3 * n, pk_root, n);
@@ -514,7 +501,7 @@ static size_t slh_sign_digest(slh_var_t *var, uint8_t *sig,
   uint8_t pk_fors[SLH_MAX_N] = {0};
   size_t sig_sz;
 
-  split_digest(&i_tree, &i_leaf, digest, var->prm);
+  LEVEL_VOID("split_digest", split_digest(&i_tree, &i_leaf, digest, var->prm));
 
   adrs_zero(var);
   adrs_set_tree_address(var, i_tree);
@@ -522,12 +509,12 @@ static size_t slh_sign_digest(slh_var_t *var, uint8_t *sig,
   adrs_set_key_pair_address(var, i_leaf);
 
   /* SIG_FORS */
-  sig_sz = fors_sign(var, sig, md);
-  fors_pk_from_sig(var, pk_fors, sig, md);
+  sig_sz = LEVEL_RETN("", fors_sign(var, sig, md));
+  LEVEL_VOID("fors_pk_from_sig", fors_pk_from_sig(var, pk_fors, sig, md));
 
   /* SIG_HT */
   sig += sig_sz;
-  sig_sz += ht_sign(var, sig, pk_fors, i_tree, i_leaf);
+  sig_sz += LEVEL_RETN("ht_sign", ht_sign(var, sig, pk_fors, i_tree, i_leaf));
 
   return sig_sz;
 }
@@ -556,7 +543,7 @@ size_t slh_sign_internal(uint8_t *sig, const uint8_t *m, size_t m_sz,
   prm->h_msg(&var, digest, sig, m, m_sz, NULL, SLH_CTX_SZ_NO_CONTEXT);
 
   /* create FORS and HT signature parts */
-  sig_sz += slh_sign_digest(&var, sig + sig_sz, digest);
+  sig_sz += LEVEL_RETN("slh_sign_digest", slh_sign_digest(&var, sig + sig_sz, digest));
 
   return sig_sz;
 }
@@ -588,7 +575,7 @@ size_t slh_sign(uint8_t *sig, const uint8_t *m, size_t m_sz, const uint8_t *ctx,
   prm->h_msg(&var, digest, sig, m, m_sz, ctx, ctx_sz);
 
   /* create FORS and HT signature parts */
-  sig_sz += slh_sign_digest(&var, sig + sig_sz, digest);
+  sig_sz += LEVEL_RETN("slh_sign_digest", slh_sign_digest(&var, sig + sig_sz, digest));
 
   return sig_sz;
 }
@@ -621,9 +608,9 @@ static int slh_verify_digest(slh_var_t *var, const uint8_t *digest,
   adrs_set_type_and_clear_not_kp(var, ADRS_FORS_TREE);
   adrs_set_key_pair_address(var, i_leaf);
 
-  fors_pk_from_sig(var, pk_fors, sig_fors, md);
+  LEVEL_VOID("fors_pk_from_sig", fors_pk_from_sig(var, pk_fors, sig_fors, md));
 
-  return ht_verify(var, pk_fors, sig_ht, i_tree, i_leaf);
+  return LEVEL_RETN("ht_verify", ht_verify(var, pk_fors, sig_ht, i_tree, i_leaf));
 }
 
 /* Algorithm 20: slh_verify_internal(M, SIG, PK) */
@@ -638,7 +625,7 @@ int slh_verify_internal(const uint8_t *m, size_t m_sz, const uint8_t *sig,
   prm->mk_var(&var, pk, NULL, prm);
   prm->h_msg(&var, digest, sig, m, m_sz, NULL, SLH_CTX_SZ_NO_CONTEXT);
 
-  return slh_verify_digest(&var, digest, sig, sig_sz, prm);
+  return LEVEL_RETN("slh_verify_digest", slh_verify_digest(&var, digest, sig, sig_sz, prm));
 }
 
 /* === Verifies a pure SLH-DSA signature. */
@@ -657,5 +644,5 @@ int slh_verify(const uint8_t *m, size_t m_sz, const uint8_t *sig, size_t sig_sz,
   prm->mk_var(&var, pk, NULL, prm);
   prm->h_msg(&var, digest, sig, m, m_sz, ctx, ctx_sz);
 
-  return slh_verify_digest(&var, digest, sig, sig_sz, prm);
+  return LEVEL_RETN("slh_verify_digest", slh_verify_digest(&var, digest, sig, sig_sz, prm));
 }

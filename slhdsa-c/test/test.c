@@ -6,6 +6,28 @@
 #include "slh_prehash.h"
 #include "slh_var.h"
 
+#include "trace.h"
+
+#define ANSI_FG_RED    "\33[1;31m"
+#define ANSI_FG_GREEN  "\33[1;32m"
+#define ANSI_FG_YELLOW "\33[1;33m"
+#define ANSI_FG_BLUE   "\33[1;34m"
+#define ANSI_NONE      "\33[0m"
+#define ANSI_FMT(str, fmt) fmt str ANSI_NONE
+
+const char usage[] = "xfips205 -<acvp inputs> [ keyGen | sigGen | sigVer ]\n";
+const char *valid_cmds[] = {"keyGen", "sigGen", "sigVer", NULL};
+
+int fail = 0;
+int skip = 0;
+int arg_ok = 0;
+const char *cmd = NULL;
+const char *slh_name = NULL;
+const char *tcid = NULL;
+const slh_param_t *prm = NULL;
+char test_id[256] = "(no test id)";
+char test_func[256] = "(no function)";
+
 static void kat_hex(FILE *fh, const char *label, const uint8_t *x, size_t xlen) {
   size_t i;
   fprintf(fh, "%s = ", label);
@@ -57,6 +79,8 @@ char *data_args[][2] = {
   {"skSeed", NULL},
   {"tcId", NULL},
   {"testPassed", NULL},
+  {"trace_depth", NULL},
+  {"trace_file", NULL},
   {NULL, NULL},
 };
 
@@ -112,19 +136,6 @@ static uint8_t *hex_data(size_t *data_sz, const char *hex) {
   *data_sz = l;
   return buf;
 }
-
-const char usage[] = "xfips205 -<acvp inputs> [ keyGen | sigGen | sigVer ]\n";
-const char *valid_cmds[] = {"keyGen", "sigGen", "sigVer", NULL};
-
-int fail = 0;
-int skip = 0;
-int arg_ok = 0;
-const char *cmd = NULL;
-const char *slh_name = NULL;
-const char *tcid = NULL;
-const slh_param_t *prm = NULL;
-char test_id[256] = "(no test id)";
-char test_func[256] = "(no function)";
 
 static void parse_args(int argc, char **argv) {
   if (argc < 2) {
@@ -198,6 +209,12 @@ static void parse_args(int argc, char **argv) {
     sprintf(test_id, "%s %s", cmd, prm->alg_id);
   else
     sprintf(test_id, "%s %s [%s]", cmd, prm->alg_id, tcid);
+
+  /* trace */
+  if (find_par("trace_depth") != NULL)
+    trace_depth = atoi(find_par("trace_depth"));
+  if (find_par("trace_file") != NULL)
+    trace_file = find_par("trace_file");
 }
 
 static void keyGen(void) {
@@ -215,6 +232,10 @@ static void keyGen(void) {
   size_t pk_sz = 0;
   uint8_t *sk = NULL;
   size_t sk_sz = 0;
+
+  TRACE(cJSON_AddStringToObject(INFO_NODE, "skSeed", find_par("skSeed")));
+  TRACE(cJSON_AddStringToObject(INFO_NODE, "skPrf", find_par("skPrf")));
+  TRACE(cJSON_AddStringToObject(INFO_NODE, "pkSeed", find_par("pkSeed")));
 
   /* mandatory inputs */
   sk_seed = hex_data(&sk_seed_sz, find_par("skSeed"));
@@ -251,7 +272,7 @@ static void keyGen(void) {
   sprintf(test_func, "slh_keygen_internal()");
 
   /* run key generation */
-  slh_keygen_internal(sk_out, pk_out, sk_seed, sk_prf, pk_seed, prm);
+  LEVEL_VOID("slh_keygen_internal", slh_keygen_internal(sk_out, pk_out, sk_seed, sk_prf, pk_seed, prm));
 
   /* compare outputs (or print if no reference value is given) */
   if (pk == NULL)
@@ -293,6 +314,10 @@ static void sigGen(void) {
   size_t ctx_sz = 0;
   uint8_t *sig_out = NULL;
   size_t sig_out_sz = 0;
+
+  TRACE(cJSON_AddStringToObject(INFO_NODE, "sk", find_par("sk")));
+  TRACE(cJSON_AddStringToObject(INFO_NODE, "message", find_par("message")));
+  // TRACE(cJSON_AddStringToObject(INFO_NODE, "context", find_par("context")));
 
   /* pre hash flags */
   int pure = 1;
@@ -336,12 +361,12 @@ static void sigGen(void) {
   if (iface != NULL && strcmp(iface, "internal") == 0) {
     sprintf(test_func, "slh_sign_internal()");
     /* Algorithm 19: slh_sign_internal(M, SK, addrnd) */
-    sig_out_sz = slh_sign_internal(sig_out, msg, msg_sz, sk, addrnd, prm);
+    sig_out_sz = LEVEL_RETN("slh_sign_internal", slh_sign_internal(sig_out, msg, msg_sz, sk, addrnd, prm));
   } else if (strcmp(iface, "external") == 0) {
     if (pure) {
       sprintf(test_func, "slh_sign()");
       /* Algorithm 22: slh_sign(M, ctx, SK) */
-      sig_out_sz = slh_sign(sig_out, msg, msg_sz, ctx, ctx_sz, sk, addrnd, prm);
+      sig_out_sz = LEVEL_RETN("slh_sign", slh_sign(sig_out, msg, msg_sz, ctx, ctx_sz, sk, addrnd, prm));
     } else {
       hashalg = find_par("hashAlg");
       if (hashalg == NULL) {
@@ -350,7 +375,7 @@ static void sigGen(void) {
       }
       sprintf(test_func, "hash_slh_sign(%s)", hashalg);
       /* Algorithm 23:  hash_slh_sign(M, ctx, PH, SK) */
-      sig_out_sz = hash_slh_sign(sig_out, msg, msg_sz, ctx, ctx_sz, hashalg, sk, addrnd, prm);
+      sig_out_sz = LEVEL_RETN("hash_slh_sign", hash_slh_sign(sig_out, msg, msg_sz, ctx, ctx_sz, hashalg, sk, addrnd, prm));
     }
   } else skip++; /* not sure if this ever invoked */
 
@@ -400,6 +425,10 @@ static void sigVer(void) {
   int exp_res = 1;
   int pure = 1;
 
+  TRACE(cJSON_AddStringToObject(INFO_NODE, "pk", find_par("pk")));
+  TRACE(cJSON_AddStringToObject(INFO_NODE, "message", find_par("message")));
+  // TRACE(cJSON_AddStringToObject(INFO_NODE, "context", find_par("context")));
+
   iface = find_par("signatureInterface");
   passed = find_par("testPassed");
   prehash = find_par("preHash");
@@ -442,12 +471,12 @@ static void sigVer(void) {
   if (strcmp(iface, "internal") == 0) {
     sprintf(test_func, "slh_verify_internal()");
     /* Algorithm 20: slh_verify_internal(M, SIG, PK) */
-    res = slh_verify_internal(msg, msg_sz, sig, sig_sz, pk, prm);
+    res = LEVEL_RETN("slh_verify_internal", slh_verify_internal(msg, msg_sz, sig, sig_sz, pk, prm));
   } else if (strcmp(iface, "external") == 0) {
     if (pure) {
       sprintf(test_func, "slh_verify()");
       /* Algorithm 24 slh_verify(M, SIG, var, PK) */
-      res = slh_verify(msg, msg_sz, sig, sig_sz, ctx, ctx_sz, pk, prm);
+      res = LEVEL_RETN("slh_verify", slh_verify(msg, msg_sz, sig, sig_sz, ctx, ctx_sz, pk, prm));
     } else {
       hashalg = find_par("hashAlg");
       if (hashalg == NULL) {
@@ -456,7 +485,7 @@ static void sigVer(void) {
       }
       sprintf(test_func, "hash_slh_verify(%s)", hashalg);
       /* Algorithm 25: hash_slh_verify(M, SIG, ctx, PH, PK) */
-      res = hash_slh_verify(msg, msg_sz, sig, sig_sz, ctx, ctx_sz, hashalg, pk, prm);
+      res = LEVEL_RETN("hash_slh_verify", hash_slh_verify(msg, msg_sz, sig, sig_sz, ctx, ctx_sz, hashalg, pk, prm));
     }
   } else skip++;
 
@@ -464,7 +493,7 @@ static void sigVer(void) {
   if (skip == 0 && res != exp_res) {
     fail++;
     if (reason != NULL)
-      printf("[INFO] %s: %s\n", test_id, reason);
+      printf("%s  %s: %s\n", ANSI_FMT("[INFO]", ANSI_FG_BLUE), test_id, reason);
   }
 
   /* free local buffers */
@@ -485,29 +514,34 @@ int main(int argc, char **argv) {
       "-parameterSet", "SLH-DSA-SHAKE-128f",
       "keyGen"
   };
-
   int default_argc = sizeof(default_argv) / sizeof(default_argv[0]);
 
-  if (argc == 1) {
+  if (argc == 1)
     parse_args(default_argc, default_argv);
-  } else {
+  else
     parse_args(argc, argv);
-  }
 
-  if (strcmp(cmd, "keyGen") == 0) {
+  TRACE(printf("[Trace] depth: %d - file: %s\n", trace_depth, trace_file));
+  TRACE(trace_init(trace_file));
+  TRACE(cJSON_AddStringToObject(INFO_NODE, "tag", prm->alg_id));
+  TRACE(cJSON_AddStringToObject(INFO_NODE, "type", cmd));
+  TRACE(cJSON_AddNumberToObject(INFO_NODE, "depth", trace_depth));
+
+  if (strcmp(cmd, "keyGen") == 0)
     keyGen();
-  } else if (strcmp(cmd, "sigGen") == 0) {
+  else if (strcmp(cmd, "sigGen") == 0)
     sigGen();
-  } else if (strcmp(cmd, "sigVer") == 0) {
+  else if (strcmp(cmd, "sigVer") == 0)
     sigVer();
-  } else skip++;
+  else skip++;
 
   if (fail > 0)
-    printf("[FAIL] %s %s\n", test_id, test_func);
+    printf("%s  %s %s\n", ANSI_FMT("[FAIL]", ANSI_FG_RED), test_id, test_func);
   else if (skip > 0)
-    printf("[SKIP] %s %s\n", test_id, test_func);
+    printf("%s  %s %s\n", ANSI_FMT("[SKIP]", ANSI_FG_BLUE), test_id, test_func);
   else
-    printf("[PASS] %s %s\n", test_id, test_func);
+    printf("%s  %s %s\n", ANSI_FMT("[PASS]", ANSI_FG_GREEN), test_id, test_func);
 
+  TRACE(trace_close());
   return fail;
 }

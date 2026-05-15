@@ -1,7 +1,7 @@
 OBJDIR := build
 
 # SRC
-CSRC   := $(wildcard slh/*.c) $(wildcard hash/*.c)
+CSRC   := $(wildcard slh/*.c) $(wildcard hash/*.c) $(wildcard trace/*.c)
 # OBJ
 OBJS   := $(patsubst %.c,$(OBJDIR)/%.o,$(CSRC))
 DIRS   := $(sort $(dir $(OBJS)))
@@ -13,15 +13,19 @@ XASCONC   := test/ascon_kat.c
 XFIPS205  := $(OBJDIR)/xfips205
 XFIPS205C := test/xfips205.c
 
+DEBUG  ?= 0
 CC     ?= gcc
 CFLAGS := -Wall -Wextra -Werror=unused-result -Wpedantic -Werror \
           -Wmissing-prototypes -Wshadow -Wpointer-arith \
           -Wredundant-decls -Wno-long-long -Wno-unknown-pragmas \
           -std=c99 -fomit-frame-pointer -pedantic \
-          -Ihash -Islh \
+          -Ihash -Islh -Itrace\
           $(CFLAGS)
+ifeq ($(DEBUG),1)
 CFLAGS += -g -O0
-# CFLAGS += -O3
+else
+CFLAGS += -O3
+endif
 LDLIBS +=
 
 default: $(XFIPS205)
@@ -57,9 +61,11 @@ test-all: $(XFIPS205)
 	python3 test/acvp_client.py
 .PHONY: test-all
 
+ifeq ($(DEBUG),1)
 gdb: $(XTEST)
 	gdb ./$(XTEST)
 .PHONY: gdb
+endif
 
 clean:
 	$(RM) -rf $(OBJDIR) *.rsp *.req *.log

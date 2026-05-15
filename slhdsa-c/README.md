@@ -1,5 +1,6 @@
 https://github.com/pq-code-package/slhdsa-c
 sudo apt install parallel
+https://github.com/DaveGamble/cJSON.git
 
 [//]: # (SPDX-License-Identifier: CC-BY-4.0)
 #   slhdsa-c

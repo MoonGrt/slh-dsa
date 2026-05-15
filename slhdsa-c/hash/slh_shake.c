@@ -9,6 +9,8 @@
 #include "slh_adrs.h"
 #include "slh_var.h"
 
+#include "trace.h"
+
 /* === 10.1.   SLH-DSA Using SHAKE */
 
 /* Hmsg(R, PK.seed, PK.root, M) = SHAKE256(R || PK.seed || PK.root || M, */
