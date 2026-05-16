@@ -233,9 +233,9 @@ static void keyGen(void) {
   uint8_t *sk = NULL;
   size_t sk_sz = 0;
 
-  TRACE(cJSON_AddStringToObject(INFO_NODE, "skSeed", find_par("skSeed")));
-  TRACE(cJSON_AddStringToObject(INFO_NODE, "skPrf", find_par("skPrf")));
-  TRACE(cJSON_AddStringToObject(INFO_NODE, "pkSeed", find_par("pkSeed")));
+  TRACE(cJSON_AddStringToObject(DATA_NODE, "skSeed", find_par("skSeed")));
+  TRACE(cJSON_AddStringToObject(DATA_NODE, "skPrf", find_par("skPrf")));
+  TRACE(cJSON_AddStringToObject(DATA_NODE, "pkSeed", find_par("pkSeed")));
 
   /* mandatory inputs */
   sk_seed = hex_data(&sk_seed_sz, find_par("skSeed"));
@@ -272,7 +272,7 @@ static void keyGen(void) {
   sprintf(test_func, "slh_keygen_internal()");
 
   /* run key generation */
-  LEVEL_VOID("slh_keygen_internal", slh_keygen_internal(sk_out, pk_out, sk_seed, sk_prf, pk_seed, prm));
+  TRACE_VOID("slh_keygen_internal", slh_keygen_internal(sk_out, pk_out, sk_seed, sk_prf, pk_seed, prm));
 
   /* compare outputs (or print if no reference value is given) */
   if (pk == NULL)
@@ -315,9 +315,9 @@ static void sigGen(void) {
   uint8_t *sig_out = NULL;
   size_t sig_out_sz = 0;
 
-  TRACE(cJSON_AddStringToObject(INFO_NODE, "sk", find_par("sk")));
-  TRACE(cJSON_AddStringToObject(INFO_NODE, "message", find_par("message")));
-  // TRACE(cJSON_AddStringToObject(INFO_NODE, "context", find_par("context")));
+  TRACE(cJSON_AddStringToObject(DATA_NODE, "sk", find_par("sk")));
+  TRACE(cJSON_AddStringToObject(DATA_NODE, "message", find_par("message")));
+  // TRACE(cJSON_AddStringToObject(DATA_NODE, "context", find_par("context")));
 
   /* pre hash flags */
   int pure = 1;
@@ -361,12 +361,12 @@ static void sigGen(void) {
   if (iface != NULL && strcmp(iface, "internal") == 0) {
     sprintf(test_func, "slh_sign_internal()");
     /* Algorithm 19: slh_sign_internal(M, SK, addrnd) */
-    sig_out_sz = LEVEL_RETN("slh_sign_internal", slh_sign_internal(sig_out, msg, msg_sz, sk, addrnd, prm));
+    sig_out_sz = TRACE_RETN("slh_sign_internal", slh_sign_internal(sig_out, msg, msg_sz, sk, addrnd, prm));
   } else if (strcmp(iface, "external") == 0) {
     if (pure) {
       sprintf(test_func, "slh_sign()");
       /* Algorithm 22: slh_sign(M, ctx, SK) */
-      sig_out_sz = LEVEL_RETN("slh_sign", slh_sign(sig_out, msg, msg_sz, ctx, ctx_sz, sk, addrnd, prm));
+      sig_out_sz = TRACE_RETN("slh_sign", slh_sign(sig_out, msg, msg_sz, ctx, ctx_sz, sk, addrnd, prm));
     } else {
       hashalg = find_par("hashAlg");
       if (hashalg == NULL) {
@@ -375,7 +375,7 @@ static void sigGen(void) {
       }
       sprintf(test_func, "hash_slh_sign(%s)", hashalg);
       /* Algorithm 23:  hash_slh_sign(M, ctx, PH, SK) */
-      sig_out_sz = LEVEL_RETN("hash_slh_sign", hash_slh_sign(sig_out, msg, msg_sz, ctx, ctx_sz, hashalg, sk, addrnd, prm));
+      sig_out_sz = TRACE_RETN("hash_slh_sign", hash_slh_sign(sig_out, msg, msg_sz, ctx, ctx_sz, hashalg, sk, addrnd, prm));
     }
   } else skip++; /* not sure if this ever invoked */
 
@@ -425,9 +425,9 @@ static void sigVer(void) {
   int exp_res = 1;
   int pure = 1;
 
-  TRACE(cJSON_AddStringToObject(INFO_NODE, "pk", find_par("pk")));
-  TRACE(cJSON_AddStringToObject(INFO_NODE, "message", find_par("message")));
-  // TRACE(cJSON_AddStringToObject(INFO_NODE, "context", find_par("context")));
+  TRACE(cJSON_AddStringToObject(DATA_NODE, "pk", find_par("pk")));
+  TRACE(cJSON_AddStringToObject(DATA_NODE, "message", find_par("message")));
+  // TRACE(cJSON_AddStringToObject(DATA_NODE, "context", find_par("context")));
 
   iface = find_par("signatureInterface");
   passed = find_par("testPassed");
@@ -471,12 +471,12 @@ static void sigVer(void) {
   if (strcmp(iface, "internal") == 0) {
     sprintf(test_func, "slh_verify_internal()");
     /* Algorithm 20: slh_verify_internal(M, SIG, PK) */
-    res = LEVEL_RETN("slh_verify_internal", slh_verify_internal(msg, msg_sz, sig, sig_sz, pk, prm));
+    res = TRACE_RETN("slh_verify_internal", slh_verify_internal(msg, msg_sz, sig, sig_sz, pk, prm));
   } else if (strcmp(iface, "external") == 0) {
     if (pure) {
       sprintf(test_func, "slh_verify()");
       /* Algorithm 24 slh_verify(M, SIG, var, PK) */
-      res = LEVEL_RETN("slh_verify", slh_verify(msg, msg_sz, sig, sig_sz, ctx, ctx_sz, pk, prm));
+      res = TRACE_RETN("slh_verify", slh_verify(msg, msg_sz, sig, sig_sz, ctx, ctx_sz, pk, prm));
     } else {
       hashalg = find_par("hashAlg");
       if (hashalg == NULL) {
@@ -485,7 +485,7 @@ static void sigVer(void) {
       }
       sprintf(test_func, "hash_slh_verify(%s)", hashalg);
       /* Algorithm 25: hash_slh_verify(M, SIG, ctx, PH, PK) */
-      res = LEVEL_RETN("hash_slh_verify", hash_slh_verify(msg, msg_sz, sig, sig_sz, ctx, ctx_sz, hashalg, pk, prm));
+      res = TRACE_RETN("hash_slh_verify", hash_slh_verify(msg, msg_sz, sig, sig_sz, ctx, ctx_sz, hashalg, pk, prm));
     }
   } else skip++;
 

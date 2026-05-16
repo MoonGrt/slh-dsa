@@ -56,7 +56,6 @@ static SLH_INLINE size_t base_2b(uint32_t *v, const uint8_t *x, uint32_t b,
                              size_t v_len) {
   size_t i, j;
   uint32_t l, t, m;
-
   j = 0;
   l = 0;
   t = 0;
@@ -118,7 +117,7 @@ static size_t wots_sign(slh_var_t *var, uint8_t *sig, const uint8_t *m) {
 
   for (i = 0; i < len; i++) {
     adrs_set_chain_address(var, i);
-    prm->wots_chain(var, sig, vm[i]);
+    TRACE_WOTS_CHAIN(prm, var, sig, vm[i]);
     sig += n;
   }
   return n * len;
@@ -143,12 +142,12 @@ static void wots_pk_from_sig(slh_var_t *var, uint8_t *pk, const uint8_t *sig,
   tmp_sz = 0;
   for (i = 0; i < len; i++) {
     adrs_set_chain_address(var, i);
-    prm->chain(var, tmp + tmp_sz, sig + tmp_sz, vm[i], t - vm[i]);
+    TRACE_CHAIN(prm, var, tmp + tmp_sz, sig + tmp_sz, vm[i], t - vm[i]);
     tmp_sz += n;
   }
 
   adrs_set_type_and_clear_not_kp(var, ADRS_WOTS_PK);
-  prm->h_t(var, pk, tmp, tmp_sz);
+  TRACE_H_T(prm, var, pk, tmp, tmp_sz);
 }
 
 /* === Compute the root of a Merkle subtree of WOTS+ public keys. */
@@ -175,13 +174,13 @@ static void xmss_node(slh_var_t *var, uint8_t *node, uint32_t i, uint32_t z) {
     sk = tmp;
     for (k = 0; k < len; k++) {
       adrs_set_chain_address(var, k);
-      prm->wots_chain(var, sk, w1);
+      TRACE_WOTS_CHAIN(prm, var, sk, w1);
       sk += n;
     }
     adrs_set_type_and_clear_not_kp(var, ADRS_WOTS_PK);
     h0 = p >= 0 ? h[p] : node;
     p++;
-    prm->h_t(var, h0, tmp, len * n);
+    TRACE_H_T(prm, var, h0, tmp, len * n);
 
     /* this xmss_node() implementation is non-recursive */
     for (k = 0; (j >> k) & 1; k++) {
@@ -190,7 +189,7 @@ static void xmss_node(slh_var_t *var, uint8_t *node, uint32_t i, uint32_t z) {
       adrs_set_tree_index(var, i >> (k + 1));
       p--;
       h0 = p >= 1 ? h[p - 1] : node;
-      prm->h_h(var, h0, h0, h[p]);
+      TRACE_H_H(prm, var, h0, h0, h[p]);
     }
     i++; /* advance index */
   }
@@ -212,14 +211,14 @@ static size_t xmss_sign(slh_var_t *var, uint8_t *sx, const uint8_t *m,
 
   for (j = 0; j < prm->hp; j++) {
     k = (idx >> j) ^ 1;
-    LEVEL_VOID("xmss_node", xmss_node(var, auth, k, j));
+    TRACE_VOID("xmss_node", xmss_node(var, auth, k, j));
     auth += n;
   }
   sx_sz += prm->hp * n;
 
   adrs_set_type_and_clear_not_kp(var, ADRS_WOTS_HASH);
   adrs_set_key_pair_address(var, idx);
-  LEVEL_VOID("wots_sign", wots_sign(var, sx, m));
+  TRACE_VOID("wots_sign", wots_sign(var, sx, m));
 
   return sx_sz;
 }
@@ -239,7 +238,7 @@ static void xmss_pk_from_sig(slh_var_t *var, uint8_t *root, uint32_t idx,
   adrs_set_type_and_clear_not_kp(var, ADRS_WOTS_HASH);
   adrs_set_key_pair_address(var, idx);
 
-  LEVEL_VOID("wots_pk_from_sig", wots_pk_from_sig(var, root, sig, m));
+  TRACE_VOID("wots_pk_from_sig", wots_pk_from_sig(var, root, sig, m));
   adrs_set_type_and_clear(var, ADRS_TREE);
 
   auth = sig + (get_len(prm) * n);
@@ -247,11 +246,10 @@ static void xmss_pk_from_sig(slh_var_t *var, uint8_t *root, uint32_t idx,
   for (k = 0; k < prm->hp; k++) {
     adrs_set_tree_height(var, k + 1);
     adrs_set_tree_index(var, idx >> (k + 1));
-
     if (((idx >> k) & 1) == 0)
-      prm->h_h(var, root, root, auth);
+      TRACE_H_H(prm, var, root, root, auth);
     else
-      prm->h_h(var, root, auth, root);
+      TRACE_H_H(prm, var, root, auth, root);
     auth += n;
   }
 }
@@ -267,18 +265,18 @@ static size_t ht_sign(slh_var_t *var, uint8_t *sh, uint8_t *m, uint64_t i_tree,
 
   adrs_zero(var);
   adrs_set_tree_address(var, i_tree);
-  sx_sz = LEVEL_RETN("xmss_sign", xmss_sign(var, sh, m, i_leaf));
+  sx_sz = TRACE_RETN("xmss_sign", xmss_sign(var, sh, m, i_leaf));
 
   for (j = 1; j < prm->d; j++) {
     TRACE(snprintf(level_name, sizeof(level_name), "xmss_pk_from_sig%d", j));
-    LEVEL_VOID(level_name, xmss_pk_from_sig(var, m, i_leaf, sh, m));
+    TRACE_VOID(level_name, xmss_pk_from_sig(var, m, i_leaf, sh, m));
     sh += sx_sz;
     i_leaf = i_tree & ((1 << prm->hp) - 1);
     i_tree >>= prm->hp;
     adrs_set_layer_address(var, j);
     adrs_set_tree_address(var, i_tree);
     TRACE(snprintf(level_name, sizeof(level_name), "xmss_sign%d", j));
-    LEVEL_VOID(level_name, xmss_sign(var, sh, m, i_leaf));
+    TRACE_VOID(level_name, xmss_sign(var, sh, m, i_leaf));
   }
 
   return sx_sz * prm->d;
@@ -296,7 +294,7 @@ static int ht_verify(slh_var_t *var, const uint8_t *m, const uint8_t *sig_ht,
 
   adrs_zero(var);
   adrs_set_tree_address(var, i_tree);
-  LEVEL_VOID("xmss_pk_from_sig0", xmss_pk_from_sig(var, node, i_leaf, sig_ht, m));
+  TRACE_VOID("xmss_pk_from_sig0", xmss_pk_from_sig(var, node, i_leaf, sig_ht, m));
 
   st_sz = (prm->hp + get_len(prm)) * prm->n;
   for (j = 1; j < prm->d; j++) {
@@ -306,7 +304,7 @@ static int ht_verify(slh_var_t *var, const uint8_t *m, const uint8_t *sig_ht,
     adrs_set_tree_address(var, i_tree);
     sig_ht += st_sz;
     TRACE(snprintf(level_name, sizeof(level_name), "xmss_pk_from_sig%d", j));
-    LEVEL_VOID(level_name, xmss_pk_from_sig(var, node, i_leaf, sig_ht, node));
+    TRACE_VOID(level_name, xmss_pk_from_sig(var, node, i_leaf, sig_ht, node));
   }
 
   return memcmp(node, var->pk_root, prm->n) == 0;
@@ -333,14 +331,14 @@ static void fors_node(slh_var_t *var, uint8_t *node, uint32_t i, uint32_t z) {
     adrs_set_tree_index(var, i);
     h0 = p >= 0 ? h[p] : node;
     p++;
-    prm->fors_hash(var, h0, 1);
+    TRACE_FORS_HASH(prm, var, h0, 1);
     /* this fors_node() implementation is non-recursive */
     for (k = 0; (j >> k) & 1; k++) {
       adrs_set_tree_height(var, k + 1);
       adrs_set_tree_index(var, i >> (k + 1));
       p--;
       h0 = p > 0 ? h[p - 1] : node;
-      prm->h_h(var, h0, h0, h[p]);
+      TRACE_H_H(prm, var, h0, h0, h[p]);
     }
     i++; /* advance index */
   }
@@ -360,13 +358,12 @@ static size_t fors_sign(slh_var_t *var, uint8_t *sf, const uint8_t *md) {
   for (i = 0; i < prm->k; i++) {
     /* fors_SKgen() */
     adrs_set_tree_index(var, (i << prm->a) + vi[i]);
-    prm->fors_hash(var, sf, 0);
+    TRACE_FORS_HASH(prm, var, sf, 0);
     sf += n;
-
     for (j = 0; j < prm->a; j++) {
       s = (vi[i] >> j) ^ 1;
-      TRACE(snprintf(level_name, sizeof(level_name), "fors_node%d", j));
-      LEVEL_VOID(level_name, fors_node(var, sf, (i << (prm->a - j)) + s, j));
+      TRACE(snprintf(level_name, sizeof(level_name), "fors_tree%d - fors_node%d", i, j));
+      TRACE_VOID(level_name, fors_node(var, sf, (i << (prm->a - j)) + s, j));
       sf += n;
     }
   }
@@ -393,22 +390,22 @@ static void fors_pk_from_sig(slh_var_t *var, uint8_t *pk, const uint8_t *sf,
     idx = (i << prm->a) + vi[i];
     adrs_set_tree_index(var, idx);
 
-    prm->h_f(var, node, sf);
+    TRACE_H_F(prm, var, node, sf);
     sf += n;
     for (j = 0; j < prm->a; j++) {
       adrs_set_tree_height(var, j + 1);
       adrs_set_tree_index(var, idx >> (j + 1));
       if (((vi[i] >> j) & 1) == 0)
-        prm->h_h(var, node, node, sf);
+        TRACE_H_H(prm, var, node, node, sf);
       else
-        prm->h_h(var, node, sf, node);
+        TRACE_H_H(prm, var, node, sf, node);
       sf += n;
     }
     node += n;
   }
 
   adrs_set_type_and_clear_not_kp(var, ADRS_FORS_ROOTS);
-  prm->h_t(var, pk, root, prm->k * n);
+  TRACE_H_T(prm, var, pk, root, prm->k * n);
 }
 
 /* === Public API */
@@ -440,7 +437,7 @@ int slh_keygen_internal(uint8_t *sk, uint8_t *pk, const uint8_t *sk_seed,
   adrs_zero(&var);
   adrs_set_layer_address(&var, prm->d - 1);
   memcpy(pk, pk_seed, n);                          /* PK.seed in pk */
-  LEVEL_VOID("xmss_node", xmss_node(&var, pk + n, 0, prm->hp)); /* PK.root in pk (compute) */
+  TRACE_VOID("xmss_node", xmss_node(&var, pk + n, 0, prm->hp)); /* PK.root in pk (compute) */
   memcpy(sk + 3 * n, pk + n, n);                   /* PK.root in sk */
 
   return 0;
@@ -462,7 +459,7 @@ int slh_keygen(uint8_t *sk, uint8_t *pk, int (*rbg)(uint8_t *x, size_t xlen),
 
   adrs_zero(&var);
   adrs_set_layer_address(&var, prm->d - 1);
-  LEVEL_VOID("xmss_node", xmss_node(&var, pk_root, 0, prm->hp));
+  TRACE_VOID("xmss_node", xmss_node(&var, pk_root, 0, prm->hp));
 
   /* fill pk_root */
   memcpy(sk + 3 * n, pk_root, n);
@@ -501,7 +498,7 @@ static size_t slh_sign_digest(slh_var_t *var, uint8_t *sig,
   uint8_t pk_fors[SLH_MAX_N] = {0};
   size_t sig_sz;
 
-  LEVEL_VOID("split_digest", split_digest(&i_tree, &i_leaf, digest, var->prm));
+  split_digest(&i_tree, &i_leaf, digest, var->prm);
 
   adrs_zero(var);
   adrs_set_tree_address(var, i_tree);
@@ -509,12 +506,12 @@ static size_t slh_sign_digest(slh_var_t *var, uint8_t *sig,
   adrs_set_key_pair_address(var, i_leaf);
 
   /* SIG_FORS */
-  sig_sz = LEVEL_RETN("", fors_sign(var, sig, md));
-  LEVEL_VOID("fors_pk_from_sig", fors_pk_from_sig(var, pk_fors, sig, md));
+  sig_sz = TRACE_RETN("fors_sign", fors_sign(var, sig, md));
+  TRACE_VOID("fors_pk_from_sig", fors_pk_from_sig(var, pk_fors, sig, md));
 
   /* SIG_HT */
   sig += sig_sz;
-  sig_sz += LEVEL_RETN("ht_sign", ht_sign(var, sig, pk_fors, i_tree, i_leaf));
+  sig_sz += TRACE_RETN("ht_sign", ht_sign(var, sig, pk_fors, i_tree, i_leaf));
 
   return sig_sz;
 }
@@ -539,11 +536,11 @@ size_t slh_sign_internal(uint8_t *sig, const uint8_t *m, size_t m_sz,
 
   /* randomized hashing; R (first part of signarure) */
   sig_sz = prm->n;
-  prm->prf_msg(&var, sig, opt_rand, m, m_sz, NULL, SLH_CTX_SZ_NO_CONTEXT);
-  prm->h_msg(&var, digest, sig, m, m_sz, NULL, SLH_CTX_SZ_NO_CONTEXT);
+  TRACE_PRF_MSG(prm, &var, sig, opt_rand, m, m_sz, NULL, SLH_CTX_SZ_NO_CONTEXT);
+  TRACE_H_MSG(prm, &var, digest, sig, m, m_sz, NULL, SLH_CTX_SZ_NO_CONTEXT);
 
   /* create FORS and HT signature parts */
-  sig_sz += LEVEL_RETN("slh_sign_digest", slh_sign_digest(&var, sig + sig_sz, digest));
+  sig_sz += TRACE_RETN("slh_sign_digest", slh_sign_digest(&var, sig + sig_sz, digest));
 
   return sig_sz;
 }
@@ -571,11 +568,11 @@ size_t slh_sign(uint8_t *sig, const uint8_t *m, size_t m_sz, const uint8_t *ctx,
 
   /* randomized hashing; R (first part of signarure) */
   sig_sz = prm->n;
-  prm->prf_msg(&var, sig, opt_rand, m, m_sz, ctx, ctx_sz);
-  prm->h_msg(&var, digest, sig, m, m_sz, ctx, ctx_sz);
+  TRACE_PRF_MSG(prm, &var, sig, opt_rand, m, m_sz, ctx, ctx_sz);
+  TRACE_H_MSG(prm, &var, digest, sig, m, m_sz, ctx, ctx_sz);
 
   /* create FORS and HT signature parts */
-  sig_sz += LEVEL_RETN("slh_sign_digest", slh_sign_digest(&var, sig + sig_sz, digest));
+  sig_sz += TRACE_RETN("slh_sign_digest", slh_sign_digest(&var, sig + sig_sz, digest));
 
   return sig_sz;
 }
@@ -608,9 +605,9 @@ static int slh_verify_digest(slh_var_t *var, const uint8_t *digest,
   adrs_set_type_and_clear_not_kp(var, ADRS_FORS_TREE);
   adrs_set_key_pair_address(var, i_leaf);
 
-  LEVEL_VOID("fors_pk_from_sig", fors_pk_from_sig(var, pk_fors, sig_fors, md));
+  TRACE_VOID("fors_pk_from_sig", fors_pk_from_sig(var, pk_fors, sig_fors, md));
 
-  return LEVEL_RETN("ht_verify", ht_verify(var, pk_fors, sig_ht, i_tree, i_leaf));
+  return TRACE_RETN("ht_verify", ht_verify(var, pk_fors, sig_ht, i_tree, i_leaf));
 }
 
 /* Algorithm 20: slh_verify_internal(M, SIG, PK) */
@@ -623,9 +620,9 @@ int slh_verify_internal(const uint8_t *m, size_t m_sz, const uint8_t *sig,
 
   /* use Hmsg directly */
   prm->mk_var(&var, pk, NULL, prm);
-  prm->h_msg(&var, digest, sig, m, m_sz, NULL, SLH_CTX_SZ_NO_CONTEXT);
+  TRACE_H_MSG(prm, &var, digest, sig, m, m_sz, NULL, SLH_CTX_SZ_NO_CONTEXT);
 
-  return LEVEL_RETN("slh_verify_digest", slh_verify_digest(&var, digest, sig, sig_sz, prm));
+  return TRACE_RETN("slh_verify_digest", slh_verify_digest(&var, digest, sig, sig_sz, prm));
 }
 
 /* === Verifies a pure SLH-DSA signature. */
@@ -642,7 +639,7 @@ int slh_verify(const uint8_t *m, size_t m_sz, const uint8_t *sig, size_t sig_sz,
 
   /* create the "pure" hash (with context) */
   prm->mk_var(&var, pk, NULL, prm);
-  prm->h_msg(&var, digest, sig, m, m_sz, ctx, ctx_sz);
+  TRACE_H_MSG(prm, &var, digest, sig, m, m_sz, ctx, ctx_sz);
 
-  return LEVEL_RETN("slh_verify_digest", slh_verify_digest(&var, digest, sig, sig_sz, prm));
+  return TRACE_RETN("slh_verify_digest", slh_verify_digest(&var, digest, sig, sig_sz, prm));
 }
