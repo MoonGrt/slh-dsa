@@ -265,7 +265,7 @@ static size_t ht_sign(slh_var_t *var, uint8_t *sh, uint8_t *m, uint64_t i_tree,
 
   adrs_zero(var);
   adrs_set_tree_address(var, i_tree);
-  sx_sz = TRACE_RETN("xmss_sign", xmss_sign(var, sh, m, i_leaf));
+  sx_sz = TRACE_RETN("xmss_sign0", xmss_sign(var, sh, m, i_leaf));
 
   for (j = 1; j < prm->d; j++) {
     TRACE(snprintf(level_name, sizeof(level_name), "xmss_pk_from_sig%d", j));
@@ -358,14 +358,17 @@ static size_t fors_sign(slh_var_t *var, uint8_t *sf, const uint8_t *md) {
   for (i = 0; i < prm->k; i++) {
     /* fors_SKgen() */
     adrs_set_tree_index(var, (i << prm->a) + vi[i]);
+    TRACE(snprintf(level_name, sizeof(level_name), "fors_tree%d", i));
+    TRACE(trace_push_level(level_name));
     TRACE_FORS_HASH(prm, var, sf, 0);
     sf += n;
     for (j = 0; j < prm->a; j++) {
       s = (vi[i] >> j) ^ 1;
-      TRACE(snprintf(level_name, sizeof(level_name), "fors_tree%d - fors_node%d", i, j));
+      TRACE(snprintf(level_name, sizeof(level_name), "fors_node%d", j));
       TRACE_VOID(level_name, fors_node(var, sf, (i << (prm->a - j)) + s, j));
       sf += n;
     }
+    TRACE(trace_pop_level());
   }
   return n * prm->k * (1 + prm->a);
 }
@@ -389,7 +392,8 @@ static void fors_pk_from_sig(slh_var_t *var, uint8_t *pk, const uint8_t *sf,
     adrs_set_tree_height(var, 0);
     idx = (i << prm->a) + vi[i];
     adrs_set_tree_index(var, idx);
-
+    TRACE(snprintf(level_name, sizeof(level_name), "fors_tree%d", i));
+    TRACE(trace_push_level(level_name));
     TRACE_H_F(prm, var, node, sf);
     sf += n;
     for (j = 0; j < prm->a; j++) {
@@ -401,6 +405,7 @@ static void fors_pk_from_sig(slh_var_t *var, uint8_t *pk, const uint8_t *sf,
         TRACE_H_H(prm, var, node, sf, node);
       sf += n;
     }
+    TRACE(trace_pop_level());
     node += n;
   }
 
@@ -506,8 +511,10 @@ static size_t slh_sign_digest(slh_var_t *var, uint8_t *sig,
   adrs_set_key_pair_address(var, i_leaf);
 
   /* SIG_FORS */
+  TRACE(trace_push_level("fors_sign"));
   sig_sz = TRACE_RETN("fors_sign", fors_sign(var, sig, md));
   TRACE_VOID("fors_pk_from_sig", fors_pk_from_sig(var, pk_fors, sig, md));
+  TRACE(trace_pop_level());
 
   /* SIG_HT */
   sig += sig_sz;

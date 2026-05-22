@@ -504,15 +504,23 @@ static void sigVer(void) {
     free(ctx);
 }
 
+static const char *remove_prefix(const char *str) {
+  const char *prefix = "SLH-DSA-";
+  size_t prefix_len = strlen(prefix);
+  if (strncmp(str, prefix, prefix_len) == 0)
+    return str + prefix_len;
+  return str;
+}
+
 int main(int argc, char **argv) {
   char *default_argv[] = {
-      argv[0],
-      "-tcId", "1",
-      "-skSeed", "96933BBFBAA46828BD4CF83A8CD2419D",
-      "-skPrf", "7863D69CF3EAFC91E47B33CED9985459",
-      "-pkSeed", "C58383F7579C26AFA6FE3E607DA0D047",
-      "-parameterSet", "SLH-DSA-SHAKE-128f",
-      "keyGen"
+    argv[0],
+    "-tcId", "1",
+    "-skSeed", "96933BBFBAA46828BD4CF83A8CD2419D",
+    "-skPrf", "7863D69CF3EAFC91E47B33CED9985459",
+    "-pkSeed", "C58383F7579C26AFA6FE3E607DA0D047",
+    "-parameterSet", "SLH-DSA-SHAKE-128f",
+    "keyGen"
   };
   int default_argc = sizeof(default_argv) / sizeof(default_argv[0]);
 
@@ -523,7 +531,7 @@ int main(int argc, char **argv) {
 
   TRACE(printf("[Trace] depth: %d - file: %s\n", trace_depth, trace_file));
   TRACE(trace_init(trace_file));
-  TRACE(cJSON_AddStringToObject(INFO_NODE, "tag", prm->alg_id));
+  TRACE(cJSON_AddStringToObject(INFO_NODE, "tag", remove_prefix(prm->alg_id)));
   TRACE(cJSON_AddStringToObject(INFO_NODE, "type", cmd));
   TRACE(cJSON_AddNumberToObject(INFO_NODE, "depth", trace_depth));
 

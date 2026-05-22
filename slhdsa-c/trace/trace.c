@@ -131,7 +131,7 @@ void trace_add_adrs(cJSON *obj, const uint8_t *adrs) {
   uint32_t a[8];
   for (int i = 0; i < 8; i++)
     a[i] = adrs_u32(adrs, i);
-  
+
   // printf("a[0]: %08x\n", a[0]);
   // printf("a[1]: %08x\n", a[1]);
   // printf("a[2]: %08x\n", a[2]);
@@ -148,31 +148,46 @@ void trace_add_adrs(cJSON *obj, const uint8_t *adrs) {
   uint32_t tree1 = a[2];
   uint32_t tree2 = a[3];
   uint32_t type = a[4];
+  uint32_t keypair = a[5];
+  uint32_t padding0 = a[6];
+  uint32_t padding1 = a[7];
   char tree_str[32];
   snprintf(tree_str, sizeof(tree_str), "%08x%08x%08x", 
            tree0, tree1, tree2);
+  char padding_str[32];
+  snprintf(padding_str, sizeof(padding_str), "%08x%08x", 
+           padding0, padding1);
   trace_add_hex(d, "raw", adrs, 32);
   cJSON_AddNumberToObject(d, "layer", layer);
   cJSON_AddStringToObject(d, "tree", tree_str);
   cJSON_AddStringToObject(d, "type", adrs_type_name(type));
-  cJSON_AddNumberToObject(d, "keypair", a[4]);
+  cJSON_AddNumberToObject(d, "keypair", keypair);
   switch (type) {
     case 0: /* WOTS_HASH */
-    case 5: /* WOTS_PRF */
-      cJSON_AddNumberToObject(d, "chain", a[5]);
-      cJSON_AddNumberToObject(d, "hash", a[6]);
-      cJSON_AddNumberToObject(d, "km", a[7]);
+      cJSON_AddNumberToObject(d, "chain", a[6]);
+      cJSON_AddNumberToObject(d, "hash", a[7]);
       break;
     case 1: /* WOTS_PK */
-      cJSON_AddNumberToObject(d, "chain", a[5]);
+      cJSON_AddStringToObject(d, "padding", padding_str);
       break;
     case 2: /* TREE */
+      cJSON_AddNumberToObject(d, "tree height", a[6]);
+      cJSON_AddNumberToObject(d, "tree index", a[7]);
+      break;
     case 3: /* FORS_TREE */
-      cJSON_AddNumberToObject(d, "height", a[5]);
-      cJSON_AddNumberToObject(d, "index", a[6]);
+      cJSON_AddNumberToObject(d, "tree height", a[6]);
+      cJSON_AddNumberToObject(d, "tree index", a[7]);
       break;
     case 4: /* FORS_ROOTS */
-      cJSON_AddNumberToObject(d, "roots", a[5]);
+      cJSON_AddStringToObject(d, "padding", padding_str);
+      break;
+    case 5: /* WOTS_PRF */
+      cJSON_AddNumberToObject(d, "chain", a[6]);
+      cJSON_AddNumberToObject(d, "hash", a[7]);
+      break;
+    case 6: /* FORS_PRF */
+      cJSON_AddNumberToObject(d, "tree height", a[6]);
+      cJSON_AddNumberToObject(d, "tree index", a[7]);
       break;
   }
   cJSON_AddItemToObject(obj, "adrs", d);
